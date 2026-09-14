@@ -1,0 +1,43 @@
+# Dependencies and Python virtual environments
+backend/venv/
+frontend/node_modules/
+node_modules/
+venv/
+.venv/
+env/
+.env/
+
+# Python bytecode and tool caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local environment variables
+.env
+.env.*
+*.env
+
+# Build output and coverage
+frontend/dist/
+dist/
+dist-ssr/
+build/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+
+# Logs
+logs/
+*.log
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
