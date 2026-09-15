@@ -21,6 +21,7 @@ __pycache__/
 .env
 .env.*
 *.env
+!.env.example
 
 # Build output and coverage
 frontend/dist/
