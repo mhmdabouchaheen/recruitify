@@ -20,6 +20,8 @@ export function JobForm({ initialJob, mode, onSave }) {
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [pendingPath, setPendingPath] = useState(null)
   const [activeSection, setActiveSection] = useState('basic')
+  const [submitting, setSubmitting] = useState(false)
+  const [apiError, setApiError] = useState('')
   const [saveState, setSaveState] = useState(
     mode === 'edit' ? `${initialJob.status} vacancy` : 'New vacancy',
   )
@@ -55,6 +57,7 @@ export function JobForm({ initialJob, mode, onSave }) {
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }))
     setDirty(true)
+    setApiError('')
     setSaveState('Not saved')
     if (errors[key]) setErrors((current) => ({ ...current, [key]: '' }))
   }
@@ -66,6 +69,7 @@ export function JobForm({ initialJob, mode, onSave }) {
     if (!form.location) next.location = 'Select a location.'
     if (!form.employmentType) next.employmentType = 'Select an employment type.'
     if (!form.description.trim()) next.description = 'Add a job description before publishing.'
+    if (!form.requirements.trim()) next.requirements = 'Add requirements before saving.'
     if (Number(form.openings) < 1) next.openings = 'Openings must be at least 1.'
     if (form.applicationDeadline && form.applicationDeadline < '2026-09-15') next.applicationDeadline = 'Choose today or a future date.'
     if (form.applicationQuestions.some((question) => question.required && !question.text.trim())) next.questions = 'Required questions cannot be blank.'
@@ -74,18 +78,38 @@ export function JobForm({ initialJob, mode, onSave }) {
     return Object.keys(next).length === 0
   }
 
-  const saveDraft = () => {
-    const saved = onSave({ ...form, status: form.status === 'Published' ? 'Published' : 'Draft' }, 'draft')
-    setForm(saved)
-    setDirty(false)
-    setSaveState(saved.status === 'Published' ? 'Changes saved' : 'Draft saved')
+  const saveDraft = async () => {
+    if (!validate() || submitting) return
+    setSubmitting(true)
+    setApiError('')
+    try {
+      const saved = await onSave({ ...form, status: form.status === 'Published' ? 'Published' : 'Draft' }, 'draft')
+      setForm(saved)
+      setDirty(false)
+      setSaveState(saved.status === 'Published' ? 'Changes saved' : 'Draft saved')
+      if (mode === 'create') navigate(`/jobs/${saved.id}`)
+    } catch (error) {
+      setApiError(error.status === 403 ? 'You do not have permission to manage jobs.' : error.message || 'The job could not be saved.')
+    } finally {
+      setSubmitting(false)
+    }
   }
   const requestPublish = () => validate() && setPublishOpen(true)
-  const publish = () => {
-    const saved = onSave(form, 'publish')
-    setDirty(false)
-    setPublishOpen(false)
-    navigate(`/jobs/${saved.id}`)
+  const publish = async () => {
+    if (submitting) return
+    setSubmitting(true)
+    setApiError('')
+    try {
+      const saved = await onSave({ ...form, status: 'Published' }, 'publish')
+      setDirty(false)
+      setPublishOpen(false)
+      navigate(`/jobs/${saved.id}`)
+    } catch (error) {
+      setApiError(error.status === 403 ? 'You do not have permission to publish jobs.' : error.message || 'The job could not be published.')
+      setPublishOpen(false)
+    } finally {
+      setSubmitting(false)
+    }
   }
   const preview = () => navigate(`/jobs/${form.id || 'new'}/preview`, {
     state: { job: form, from: window.location.pathname },
@@ -146,6 +170,7 @@ export function JobForm({ initialJob, mode, onSave }) {
             <Field label="Education level"><select value={form.educationLevel} onChange={(e) => update('educationLevel', e.target.value)}><option value="">Select education level</option>{['High school','Diploma',"Bachelor's degree","Master's degree",'Doctorate','Not required'].map((item) => <option key={item}>{item}</option>)}</select></Field>
           </div>
           <Field label="Requirements" helper="Place each requirement on a new line."><textarea value={form.requirements} onChange={(e) => update('requirements', e.target.value)} rows="5" /></Field>
+          {errors.requirements && <p className="form-error" role="alert">{errors.requirements}</p>}
           <Field label="Preferred qualifications"><textarea value={form.preferredQualifications} onChange={(e) => update('preferredQualifications', e.target.value)} rows="4" /></Field>
         </FormSection>
 
@@ -172,13 +197,14 @@ export function JobForm({ initialJob, mode, onSave }) {
         <div><span className="form-state-dot" />{saveState}</div>
         <p>{dirty ? 'You have unsaved changes.' : saveState === 'Draft saved' ? 'Not published' : mode === 'edit' ? `${form.status} · ready to update` : 'Not published'}</p>
         <Button variant="secondary" icon={Eye} onClick={preview}>Preview</Button>
-        <Button variant="secondary" icon={Save} onClick={saveDraft}>{mode === 'edit' ? 'Save changes' : 'Save draft'}</Button>
-        <Button onClick={requestPublish}>{form.status === 'Published' ? 'Save & publish' : 'Publish job'}</Button>
+        {apiError && <p className="form-error" role="alert">{apiError}</p>}
+        <Button variant="secondary" icon={Save} onClick={saveDraft} disabled={submitting}>{submitting ? 'Saving...' : mode === 'edit' ? 'Save changes' : 'Save draft'}</Button>
+        <Button onClick={requestPublish} disabled={submitting}>{submitting ? 'Saving...' : form.status === 'Published' ? 'Save & publish' : 'Publish job'}</Button>
         <button className="cancel-form" onClick={() => requestLeave(mode === 'edit' ? `/jobs/${form.id}` : '/jobs')}>Cancel</button>
       </aside>
 
       <Modal open={publishOpen} title={`Publish ${form.title}?`} onClose={() => setPublishOpen(false)}
-        footer={<><Button variant="secondary" onClick={() => setPublishOpen(false)}>Cancel</Button><Button onClick={publish}>Publish job</Button></>}>
+        footer={<><Button variant="secondary" onClick={() => setPublishOpen(false)} disabled={submitting}>Cancel</Button><Button onClick={publish} disabled={submitting}>{submitting ? 'Publishing...' : 'Publish job'}</Button></>}>
         <div className="confirm-summary"><dl><div><dt>Department</dt><dd>{form.department}</dd></div><div><dt>Location</dt><dd>{form.location}</dd></div><div><dt>Deadline</dt><dd>{form.applicationDeadline || 'No deadline'}</dd></div></dl><p>Once published, applicants will be able to submit applications until the vacancy is closed or reaches its deadline.</p></div>
       </Modal>
       <Modal open={leaveOpen} title="Leave without saving?" onClose={() => setLeaveOpen(false)}

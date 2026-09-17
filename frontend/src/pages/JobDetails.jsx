@@ -1,22 +1,57 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Archive, Eye, FilePenLine, Radio, XCircle } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Avatar, Button, Modal } from '../components/ui'
-import { JobNotFound, JobStatusBadge, JobSummary, PageHeader } from '../components/jobs/JobShared'
+import { JobNotFound, JobStatusBadge, JobSummary, PageHeader, PageSkeleton } from '../components/jobs/JobShared'
 import { formatDate } from '../utils/jobs'
 import { useJobs } from '../context/JobsContext'
 import { candidatePreview } from '../data/jobs'
+import { getJob } from '../api/jobs'
 
 export default function JobDetails() {
   const { jobId } = useParams()
-  const { jobs, updateStatus } = useJobs()
+  const { updateStatus } = useJobs()
+  const [result, setResult] = useState({ job: null, error: '', id: '' })
   const [confirmation, setConfirmation] = useState(null)
-  const job = jobs.find((item) => item.id === jobId)
+  const [actionError, setActionError] = useState('')
+  const loading = result.id !== jobId
+  const job = loading ? null : result.job
+  const error = loading ? '' : result.error
+
+  useEffect(() => {
+    let cancelled = false
+    getJob(jobId)
+      .then((item) => {
+        if (!cancelled) setResult({ job: item, error: '', id: jobId })
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setResult({
+            job: null,
+            error: requestError.status === 404 ? 'not-found' : 'Job details could not be loaded. Please try again.',
+            id: jobId,
+          })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [jobId])
+
+  if (loading) return <PageSkeleton />
+  if (error === 'not-found') return <JobNotFound />
+  if (error) return <div className="jobs-empty standalone"><h1>Unable to load job</h1><p>{error}</p><Button variant="secondary" render={<Link to="/jobs" />}>Back to jobs</Button></div>
   if (!job) return <JobNotFound />
 
-  const confirm = () => {
-    updateStatus(job.id, confirmation)
-    setConfirmation(null)
+  const confirm = async () => {
+    try {
+      setActionError('')
+      const updated = await updateStatus(job.id, confirmation)
+      setResult((current) => current.job ? { ...current, job: updated } : current)
+      setConfirmation(null)
+    } catch (error) {
+      setActionError(error.status === 403 ? 'You do not have permission to manage jobs.' : error.message || 'The job could not be updated.')
+    }
   }
   return <>
     <PageHeader backTo="/jobs" eyebrow={job.id} title={job.title}
@@ -46,6 +81,7 @@ export default function JobDetails() {
     <Modal open={Boolean(confirmation)} title={confirmation === 'Closed' ? `Close ${job.title}?` : `${confirmation === 'Archived' ? 'Archive' : 'Publish'} ${job.title}?`} onClose={() => setConfirmation(null)}
       footer={<><Button variant="secondary" onClick={() => setConfirmation(null)}>Cancel</Button><Button variant={confirmation === 'Closed' ? 'danger' : 'primary'} onClick={confirm}>{confirmation === 'Closed' ? 'Close job' : confirmation === 'Archived' ? 'Archive job' : 'Publish job'}</Button></>}>
       <p className="dialog-copy">{confirmation === 'Closed' ? 'Closing this vacancy will prevent new applications. Existing applications will remain available to the recruitment team.' : confirmation === 'Archived' ? 'The vacancy will remain available for historical reference and leave active recruitment workflows.' : 'Applicants will be able to submit applications until this vacancy is closed or reaches its deadline.'}</p>
+      {actionError && <p className="form-error" role="alert">{actionError}</p>}
     </Modal>
   </>
 }

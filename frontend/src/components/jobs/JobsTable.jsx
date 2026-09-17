@@ -11,10 +11,10 @@ import { formatDate } from '../../utils/jobs'
 const actionIcons = { View: Eye, Edit: FilePenLine, Preview: Radio, Publish: Radio, Close: XCircle, Archive }
 
 function actionsFor(status) {
-  if (status === 'Draft') return ['View', 'Edit', 'Preview', 'Publish', 'Archive']
-  if (status === 'Published') return ['View', 'Edit', 'Preview', 'Close']
-  if (status === 'Closed') return ['View', 'Edit', 'Archive']
-  return ['View']
+  if (status === 'Draft') return ['View', 'Edit', 'Preview', 'Publish', 'Archive', 'Delete']
+  if (status === 'Published') return ['View', 'Edit', 'Preview', 'Close', 'Delete']
+  if (status === 'Closed') return ['View', 'Edit', 'Archive', 'Delete']
+  return ['View', 'Delete']
 }
 
 export function JobActions({ job, onAction }) {
@@ -25,7 +25,7 @@ export function JobActions({ job, onAction }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="job-menu">
         {actionsFor(job.status).map((action, index) => {
-          const Icon = actionIcons[action]
+          const Icon = actionIcons[action] || XCircle
           const path = action === 'View' ? `/jobs/${job.id}`
             : action === 'Edit' ? `/jobs/${job.id}/edit`
               : action === 'Preview' ? `/jobs/${job.id}/preview` : null
@@ -33,11 +33,11 @@ export function JobActions({ job, onAction }) {
             <span key={action}>
               {index === 3 && <DropdownMenuSeparator />}
               <DropdownMenuItem
-                className={action === 'Close' ? 'menu-warning' : ''}
+                className={action === 'Close' || action === 'Delete' ? 'menu-warning' : ''}
                 render={path ? <Link to={path} /> : undefined}
                 onClick={() => !path && onAction(action, job)}
               >
-                <Icon size={14} />{action === 'Close' ? 'Close job' : action}
+                <Icon size={14} />{action === 'Close' ? 'Close job' : action === 'Delete' ? 'Delete job' : action}
               </DropdownMenuItem>
             </span>
           )

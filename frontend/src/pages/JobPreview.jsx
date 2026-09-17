@@ -1,17 +1,42 @@
+﻿import { useEffect, useState } from 'react'
 import { ArrowLeft, BriefcaseBusiness, Building2, CalendarDays, MapPin } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/ui'
-import { JobNotFound } from '../components/jobs/JobShared'
+import { JobNotFound, PageSkeleton } from '../components/jobs/JobShared'
 import { formatDate } from '../utils/jobs'
-import { useJobs } from '../context/JobsContext'
+import { getJob } from '../api/jobs'
 
 export default function JobPreview() {
   const { jobId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { jobs } = useJobs()
-  const job = location.state?.job || jobs.find((item) => item.id === jobId)
+  const routeStateJob = location.state?.job
+  const [result, setResult] = useState({ job: null, error: '', id: '' })
+
+  useEffect(() => {
+    if (routeStateJob) return undefined
+
+    let cancelled = false
+    getJob(jobId)
+      .then((job) => {
+        if (!cancelled) setResult({ job, error: '', id: jobId })
+      })
+      .catch((error) => {
+        if (!cancelled) setResult({ job: null, error: error.status === 404 ? 'not-found' : 'load-error', id: jobId })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [jobId, routeStateJob])
+
+  const loading = !routeStateJob && result.id !== jobId
+  if (loading) return <PageSkeleton />
+  if (!routeStateJob && result.error) return <JobNotFound />
+
+  const job = routeStateJob || result.job
   if (!job) return <JobNotFound />
+
   const back = location.state?.from || (jobId === 'new' ? '/jobs/new' : `/jobs/${jobId}`)
   return <div className="job-preview-page">
     <div className="preview-bar"><div><span>Preview mode</span><p>This is approximately what applicants will see.</p></div><Button variant="secondary" icon={ArrowLeft} onClick={() => navigate(back, { state: location.state?.from ? { job } : undefined })}>Return to editing</Button></div>
@@ -22,3 +47,6 @@ export default function JobPreview() {
   </div>
 }
 function PreviewList({ title, value }) { const lines = value?.split('\n').filter(Boolean) || []; if (!lines.length) return null; return <section><h2>{title}</h2><ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul></section> }
+
+
+
