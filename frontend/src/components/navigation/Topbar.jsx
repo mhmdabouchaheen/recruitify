@@ -1,5 +1,6 @@
 import { Bell, Menu, Search } from 'lucide-react'
 import { Avatar, IconButton } from '../ui'
+import { useAuth } from '../../context/useAuth'
 import {
   Tooltip,
   TooltipContent,
@@ -7,6 +8,9 @@ import {
 } from '../ui/tooltip'
 
 export function Topbar({ onMenu }) {
+  const { user } = useAuth()
+  const name = user ? `${user.first_name} ${user.last_name}` : 'Recruitify user'
+
   return (
     <header className="topbar">
       <IconButton
@@ -30,7 +34,7 @@ export function Topbar({ onMenu }) {
         </TooltipTrigger>
         <TooltipContent>Notifications</TooltipContent>
       </Tooltip>
-      <Avatar name="Nour Saad" color="#d9e8de" />
+      <Avatar name={name} color="#d9e8de" />
     </header>
   )
 }

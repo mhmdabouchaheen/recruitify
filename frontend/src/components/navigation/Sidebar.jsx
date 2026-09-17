@@ -1,10 +1,11 @@
 import { motion } from 'motion/react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, Bell, BriefcaseBusiness, Building2, CalendarDays,
-  ChevronDown, KanbanSquare, LayoutDashboard, Settings, UsersRound,
+  KanbanSquare, LayoutDashboard, LogOut, Settings, UsersRound,
 } from 'lucide-react'
 import { Avatar } from '../ui'
+import { useAuth } from '../../context/useAuth'
 
 const nav = [
   [LayoutDashboard, 'Overview', '/overview'],
@@ -17,6 +18,16 @@ const nav = [
 ]
 
 export function Sidebar({ open, onNavigate }) {
+  const { logout, user } = useAuth()
+  const navigate = useNavigate()
+  const name = user ? `${user.first_name} ${user.last_name}` : 'Recruitify user'
+  const role = user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : 'Workspace'
+  const handleLogout = () => {
+    logout()
+    onNavigate?.()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <motion.aside
       className="sidebar"
@@ -53,9 +64,9 @@ export function Sidebar({ open, onNavigate }) {
       <div className="sidebar-spacer" />
       <button className="nav-item"><Settings size={17} /><span>Settings</span></button>
       <div className="org-profile">
-        <Avatar name="Nour Saad" small color="#d7e5dc" />
-        <div className="org-copy"><strong>Nour Saad</strong><span>Cedar Labs · HR</span></div>
-        <ChevronDown size={14} />
+        <Avatar name={name} small color="#d7e5dc" />
+        <div className="org-copy"><strong>{name}</strong><span>Cedar Labs · {role}</span></div>
+        <button className="logout-button" aria-label="Log out" onClick={handleLogout}><LogOut size={14} /></button>
       </div>
     </motion.aside>
   )
