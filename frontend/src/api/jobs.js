@@ -1,4 +1,4 @@
-import { apiRequest } from '../lib/apiClient'
+﻿import { apiRequest } from '../lib/apiClient'
 
 const statusToApi = {
   Draft: 'draft',
@@ -56,7 +56,7 @@ const questionFromApi = {
   number: 'Number',
 }
 
-function buildQuery(params = {}) {
+export function buildJobQuery(params = {}) {
   const query = new URLSearchParams()
   const mappings = {
     skip: params.skip,
@@ -125,7 +125,7 @@ function normalizeJobPayload(job, status) {
   }
 }
 
-function mapJob(job) {
+export function mapJob(job) {
   const requiredSkills = job.skills
     ?.filter((skill) => skill.skill_type === 'required')
     .map((skill) => skill.name) || []
@@ -165,7 +165,7 @@ function mapJob(job) {
 }
 
 export async function getJobs(params) {
-  const jobs = await apiRequest(`/jobs${buildQuery(params)}`)
+  const jobs = await apiRequest(`/jobs${buildJobQuery(params)}`)
   return jobs.map(mapJob)
 }
 
@@ -202,3 +202,4 @@ export async function updateJobStatus(jobId, status) {
 export async function deleteJob(jobId) {
   return apiRequest(`/jobs/${jobId}`, { method: 'DELETE' })
 }
+

@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.auth import router as auth_router
 from app.routers.jobs import router as jobs_router
+from app.routers.public_jobs import router as public_jobs_router
 from app.routers.rbac_test import router as rbac_test_router
 
 app = FastAPI()
@@ -22,9 +23,11 @@ app.add_middleware(
 
 app.router.include_router(auth_router)
 app.router.include_router(jobs_router)
+app.router.include_router(public_jobs_router)
 app.router.include_router(rbac_test_router)
 
 
 @app.get("/")
 def root():
     return {"message": "Recruitify API is running"}
+

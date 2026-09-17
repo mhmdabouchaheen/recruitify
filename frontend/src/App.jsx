@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+﻿import { lazy, Suspense, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './layouts/AppShell'
@@ -9,6 +9,8 @@ import './App.css'
 import './styles/jobs.css'
 
 const Login = lazy(() => import('./pages/Login'))
+const Careers = lazy(() => import('./pages/Careers'))
+const CareerDetails = lazy(() => import('./pages/CareerDetails'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
 const Jobs = lazy(() => import('./pages/Jobs'))
 const JobFormPage = lazy(() => import('./pages/JobFormPage'))
@@ -23,8 +25,10 @@ export default function App() {
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/careers/:jobId" element={<CareerDetails />} />
             <Route path="/*" element={
-              <ProtectedRoute>
+              <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
                   <Routes>
                     <Route path="/" element={<Navigate to="/overview" replace />} />
@@ -45,3 +49,5 @@ export default function App() {
     </AuthProvider>
   )
 }
+
+

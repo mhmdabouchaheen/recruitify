@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Building2, LogIn } from 'lucide-react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
@@ -6,7 +6,7 @@ import { Button, Field } from '../components/ui'
 import { useAuth } from '../context/useAuth'
 
 function fallbackForRole(role) {
-  return role === 'applicant' ? '/jobs' : '/overview'
+  return role === 'applicant' ? '/careers' : '/overview'
 }
 
 export default function Login() {
@@ -87,3 +87,4 @@ export default function Login() {
     </main>
   )
 }
+
