@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.applicant import CV
-from app.models.application import Application, ApplicationAnswer, ApplicationStatus
+from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationStatus
 from app.models.job import ApplicationQuestion, Job, JobStatus
 from app.schemas.application import ApplicationCreate
 
@@ -82,6 +82,8 @@ def create_application(db: Session, applicant_id: int, application_in: Applicati
 
     try:
         db.add(application)
+        db.flush()
+        db.add(ApplicationActivity(application_id=application.id, actor_id=applicant_id, event_type="application_submitted", to_status=ApplicationStatus.APPLIED))
         db.commit()
         return get_application(db, applicant_id, application.id) or application
     except IntegrityError as exc:
@@ -108,3 +110,4 @@ def withdraw_application(db: Session, applicant_id: int, application_id: int) ->
     except SQLAlchemyError:
         db.rollback()
         raise
+

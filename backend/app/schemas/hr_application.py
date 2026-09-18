@@ -1,5 +1,5 @@
-﻿from datetime import datetime
-from pydantic import BaseModel
+from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.application import ApplicationStatus
 from app.schemas.application import ApplicationAnswerResponse
@@ -52,3 +52,37 @@ class HRApplicationDetail(BaseModel):
 
 class HRApplicationStatusUpdate(BaseModel):
     status: ApplicationStatus
+
+class HRApplicationNoteCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Note content is required")
+        return stripped
+
+
+class HRApplicationNoteResponse(BaseModel):
+    id: int
+    application_id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+    author_id: int
+    author_first_name: str
+    author_last_name: str
+
+
+class HRApplicationActivityResponse(BaseModel):
+    id: int
+    application_id: int
+    actor_id: int | None = None
+    actor_first_name: str | None = None
+    actor_last_name: str | None = None
+    event_type: str
+    from_status: ApplicationStatus | None = None
+    to_status: ApplicationStatus | None = None
+    created_at: datetime

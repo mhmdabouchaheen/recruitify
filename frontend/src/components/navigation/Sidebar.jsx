@@ -10,7 +10,7 @@ import { useAuth } from '../../context/useAuth'
 const nav = [
   [LayoutDashboard, 'Overview', '/overview'],
   [BriefcaseBusiness, 'Jobs', '/jobs'],
-  [UsersRound, 'Candidates'],
+  [UsersRound, 'Candidates', '/candidates'],
   [KanbanSquare, 'Pipeline'],
   [CalendarDays, 'Interviews'],
   [BarChart3, 'Reports'],
@@ -71,3 +71,4 @@ export function Sidebar({ open, onNavigate }) {
     </motion.aside>
   )
 }
+

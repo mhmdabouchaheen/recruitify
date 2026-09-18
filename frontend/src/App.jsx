@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './layouts/AppShell'
@@ -15,6 +15,8 @@ const CareerDetails = lazy(() => import('./pages/CareerDetails'))
 const Profile = lazy(() => import('./pages/Profile'))
 const ApplyJob = lazy(() => import('./pages/ApplyJob'))
 const Applications = lazy(() => import('./pages/Applications'))
+const Candidates = lazy(() => import('./pages/Candidates'))
+const CandidateDetails = lazy(() => import('./pages/CandidateDetails'))
 const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
 const Jobs = lazy(() => import('./pages/Jobs'))
@@ -44,6 +46,8 @@ export default function App() {
                     <Route path="/" element={<Navigate to="/overview" replace />} />
                     <Route path="/overview" element={<Overview />} />
                     <Route path="/jobs" element={<Jobs />} />
+                    <Route path="/candidates" element={<Candidates />} />
+                    <Route path="/candidates/:applicationId" element={<CandidateDetails />} />
                     <Route path="/jobs/new" element={<JobFormPage />} />
                     <Route path="/jobs/:jobId" element={<JobDetails />} />
                     <Route path="/jobs/:jobId/edit" element={<JobFormPage />} />
@@ -59,6 +63,7 @@ export default function App() {
     </AuthProvider>
   )
 }
+
 
 
 

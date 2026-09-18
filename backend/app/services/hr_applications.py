@@ -1,17 +1,19 @@
-﻿from fastapi import HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.applicant import ApplicantProfile
-from app.models.application import Application, ApplicationAnswer, ApplicationStatus
+from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.job import Job
 from app.models.user import User
 from app.schemas.hr_application import (
     HRApplicantProfileResponse,
     HRApplicantSummary,
+    HRApplicationActivityResponse,
     HRApplicationDetail,
     HRApplicationListItem,
+    HRApplicationNoteResponse,
 )
 
 HR_ALLOWED_STATUSES = {
@@ -55,13 +57,7 @@ def list_hr_applications(
         statement = statement.where(Application.status == status_filter)
     if search:
         term = f"%{search.strip()}%"
-        statement = statement.where(
-            or_(
-                User.first_name.ilike(term),
-                User.last_name.ilike(term),
-                User.email.ilike(term),
-            )
-        )
+        statement = statement.where(or_(User.first_name.ilike(term), User.last_name.ilike(term), User.email.ilike(term)))
     statement = statement.order_by(Application.submitted_at.desc(), Application.id.desc()).offset(skip).limit(limit)
     return [_to_list_item(application) for application in db.scalars(statement).all()]
 
@@ -78,11 +74,7 @@ def get_hr_application_detail(db: Session, application_id: int) -> HRApplication
     return _to_detail(application)
 
 
-def update_hr_application_status(
-    db: Session,
-    application_id: int,
-    next_status: ApplicationStatus,
-) -> HRApplicationDetail | None:
+def update_hr_application_status(db: Session, application_id: int, next_status: ApplicationStatus, actor_id: int) -> HRApplicationDetail | None:
     if next_status == ApplicationStatus.WITHDRAWN:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="HR cannot set applications to withdrawn")
     if next_status not in HR_ALLOWED_STATUSES:
@@ -95,14 +87,58 @@ def update_hr_application_status(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Withdrawn applications cannot be changed")
 
     try:
+        previous_status = application.status
         application.status = next_status
         db.add(application)
+        if previous_status != next_status:
+            db.add(ApplicationActivity(application_id=application.id, actor_id=actor_id, event_type="status_changed", from_status=previous_status, to_status=next_status))
         db.commit()
         updated = get_hr_application(db, application_id)
         return _to_detail(updated) if updated else None
     except SQLAlchemyError:
         db.rollback()
         raise
+
+
+def list_application_notes(db: Session, application_id: int) -> list[HRApplicationNoteResponse] | None:
+    if db.get(Application, application_id) is None:
+        return None
+    statement = (
+        select(ApplicationNote)
+        .options(selectinload(ApplicationNote.author))
+        .where(ApplicationNote.application_id == application_id)
+        .order_by(ApplicationNote.created_at.asc(), ApplicationNote.id.asc())
+    )
+    return [_to_note_response(note) for note in db.scalars(statement).all()]
+
+
+def create_application_note(db: Session, application_id: int, author_id: int, content: str) -> HRApplicationNoteResponse | None:
+    if db.get(Application, application_id) is None:
+        return None
+    note = ApplicationNote(application_id=application_id, author_id=author_id, content=content.strip())
+    try:
+        db.add(note)
+        db.flush()
+        db.add(ApplicationActivity(application_id=application_id, actor_id=author_id, event_type="note_added"))
+        db.commit()
+        db.refresh(note)
+        note = db.scalar(select(ApplicationNote).options(selectinload(ApplicationNote.author)).where(ApplicationNote.id == note.id))
+        return _to_note_response(note)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def list_application_activities(db: Session, application_id: int) -> list[HRApplicationActivityResponse] | None:
+    if db.get(Application, application_id) is None:
+        return None
+    statement = (
+        select(ApplicationActivity)
+        .options(selectinload(ApplicationActivity.actor))
+        .where(ApplicationActivity.application_id == application_id)
+        .order_by(ApplicationActivity.created_at.asc(), ApplicationActivity.id.asc())
+    )
+    return [_to_activity_response(activity) for activity in db.scalars(statement).all()]
 
 
 def _to_list_item(application: Application) -> HRApplicationListItem:
@@ -139,4 +175,32 @@ def _to_detail(application: Application) -> HRApplicationDetail:
         job=application.job,
         cv=application.cv,
         answers=application.answers,
+    )
+
+
+def _to_note_response(note: ApplicationNote) -> HRApplicationNoteResponse:
+    return HRApplicationNoteResponse(
+        id=note.id,
+        application_id=note.application_id,
+        content=note.content,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+        author_id=note.author_id,
+        author_first_name=note.author.first_name,
+        author_last_name=note.author.last_name,
+    )
+
+
+def _to_activity_response(activity: ApplicationActivity) -> HRApplicationActivityResponse:
+    actor = activity.actor
+    return HRApplicationActivityResponse(
+        id=activity.id,
+        application_id=activity.application_id,
+        actor_id=activity.actor_id,
+        actor_first_name=actor.first_name if actor else None,
+        actor_last_name=actor.last_name if actor else None,
+        event_type=activity.event_type,
+        from_status=activity.from_status,
+        to_status=activity.to_status,
+        created_at=activity.created_at,
     )

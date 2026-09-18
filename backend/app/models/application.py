@@ -1,7 +1,7 @@
-﻿from datetime import datetime
+from datetime import datetime
 import enum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -39,6 +39,8 @@ class Application(Base):
     job = relationship("Job")
     cv = relationship("CV")
     answers: Mapped[list["ApplicationAnswer"]] = relationship(back_populates="application", cascade="all, delete-orphan")
+    notes: Mapped[list["ApplicationNote"]] = relationship(back_populates="application", cascade="all, delete-orphan")
+    activities: Mapped[list["ApplicationActivity"]] = relationship(back_populates="application", cascade="all, delete-orphan")
 
 
 class ApplicationAnswer(Base):
@@ -56,4 +58,37 @@ class ApplicationAnswer(Base):
     @property
     def question_text(self) -> str:
         return self.question.question if self.question is not None else ""
+
+
+class ApplicationNote(Base):
+    __tablename__ = "application_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    application = relationship("Application", back_populates="notes")
+    author = relationship("User")
+
+
+class ApplicationActivity(Base):
+    __tablename__ = "application_activities"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    from_status: Mapped[ApplicationStatus | None] = mapped_column(
+        Enum(ApplicationStatus, name="application_status", values_callable=lambda values: [value.value for value in values]),
+    )
+    to_status: Mapped[ApplicationStatus | None] = mapped_column(
+        Enum(ApplicationStatus, name="application_status", values_callable=lambda values: [value.value for value in values]),
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    application = relationship("Application", back_populates="activities")
+    actor = relationship("User")
 
