@@ -1,10 +1,10 @@
-from typing import Annotated
+﻿from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.dependencies.auth import require_authenticated_user, require_hr_or_admin
+from app.dependencies.auth import require_hr_or_admin, require_interviewer_hr_or_admin
 from app.models.job import EmploymentType, JobStatus, WorkplaceType
 from app.models.user import User
 from app.schemas.job import JobCreate, JobResponse, JobUpdate
@@ -26,7 +26,7 @@ def create_job_endpoint(
 @router.get("", response_model=list[JobResponse])
 def list_jobs_endpoint(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_interviewer_hr_or_admin),
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 100,
     search: str | None = None,
@@ -53,7 +53,7 @@ def list_jobs_endpoint(
 def get_job_endpoint(
     job_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_interviewer_hr_or_admin),
 ):
     job = get_job_by_id(db, job_id)
     if job is None:
@@ -93,3 +93,4 @@ def delete_job_endpoint(
             detail="Job not found",
         )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+

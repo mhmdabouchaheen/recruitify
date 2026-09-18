@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { Building2, LogIn } from 'lucide-react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button, Field } from '../components/ui'
 import { useAuth } from '../context/useAuth'
@@ -17,7 +17,8 @@ export default function Login() {
   const [error, setError] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
-  const from = location.state?.from?.pathname
+  const fromLocation = location.state?.from
+  const from = fromLocation ? `${fromLocation.pathname || ''}${fromLocation.search || ''}${fromLocation.hash || ''}` : ''
 
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
@@ -83,8 +84,11 @@ export default function Login() {
             {submitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
+        <p className="auth-switch">Don't have an account? <Link to="/register" state={location.state}>Create account</Link></p>
       </section>
     </main>
   )
 }
+
+
 

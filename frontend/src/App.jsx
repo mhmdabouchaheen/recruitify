@@ -9,6 +9,7 @@ import './App.css'
 import './styles/jobs.css'
 
 const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
 const Careers = lazy(() => import('./pages/Careers'))
 const CareerDetails = lazy(() => import('./pages/CareerDetails'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
@@ -25,6 +26,7 @@ export default function App() {
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/careers/:jobId" element={<CareerDetails />} />
             <Route path="/*" element={
@@ -49,5 +51,6 @@ export default function App() {
     </AuthProvider>
   )
 }
+
 
 
