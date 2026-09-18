@@ -31,6 +31,8 @@ class ApplicationAnswerResponse(BaseModel):
     question: str = Field(validation_alias="question_text")
     answer: str
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ApplicationResponse(BaseModel):
     id: int
@@ -46,4 +48,3 @@ class ApplicationResponse(BaseModel):
     answers: list[ApplicationAnswerResponse]
 
     model_config = ConfigDict(from_attributes=True)
-
