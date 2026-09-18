@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { BriefcaseBusiness, CalendarDays, LogIn, MapPin, Search, UserRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { BriefcaseBusiness, CalendarDays, LogIn, LogOut, MapPin, Search, UserRound } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { getPublicJobs } from '../api/publicJobs'
 import { Button, Field, Skeleton } from '../components/ui'
@@ -23,7 +23,7 @@ const workplaceOptions = [
 ]
 
 export default function Careers() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, logout, user } = useAuth()
   const [filters, setFilters] = useState(emptyFilters)
   const [result, setResult] = useState({ jobs: [], error: '', key: '' })
 
@@ -94,7 +94,7 @@ export default function Careers() {
           </Field>
           <div className="careers-account-action">
             {isAuthenticated
-              ? <Button variant="secondary" icon={UserRound} render={<Link to={accountPath} />}>Account</Button>
+              ? <ApplicantAccountMenu accountPath={accountPath} logout={logout} />
               : <Button variant="secondary" icon={LogIn} render={<Link to="/login" />}>Login</Button>}
           </div>
         </div>
@@ -118,15 +118,48 @@ export default function Careers() {
 }
 
 export function PublicHeader({ isAuthenticated, accountPath = '/overview' }) {
+  const { logout } = useAuth()
   return <header className="public-header">
     <Link className="public-brand" to="/careers"><span className="brand-mark"><BriefcaseBusiness size={17} /></span><span>Recruitify</span></Link>
     <nav>
       <Link to="/careers">Find Jobs</Link>
       {isAuthenticated
-        ? <Button variant="secondary" icon={UserRound} render={<Link to={accountPath} />}>Account</Button>
+        ? <ApplicantAccountMenu accountPath={accountPath} logout={logout} />
         : <Button variant="secondary" icon={LogIn} render={<Link to="/login" />}>Login</Button>}
     </nav>
   </header>
+}
+
+function ApplicantAccountMenu({ accountPath, logout }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!open) return undefined
+    const closeOnOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [open])
+
+  const handleLogout = () => {
+    logout()
+    setOpen(false)
+    navigate('/login', { replace: true })
+  }
+
+  const close = () => setOpen(false)
+
+  return <div className="account-menu" ref={menuRef}>
+    <Button variant="secondary" icon={UserRound} type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>Account</Button>
+    {open && <div className="account-dropdown" role="menu">
+      <Link role="menuitem" to={accountPath} onClick={close}>My Profile</Link>
+      <Link role="menuitem" to="/applications" onClick={close}>My Applications</Link>
+      <button role="menuitem" type="button" onClick={handleLogout}><LogOut size={14} />Log out</button>
+    </div>}
+  </div>
 }
 
 function FilterGroup({ title, options, value, onChange }) {
