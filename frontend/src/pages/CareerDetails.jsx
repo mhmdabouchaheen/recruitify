@@ -40,7 +40,11 @@ export default function CareerDetails() {
       navigate('/login', { state: { from: location } })
       return
     }
-    setNotice('Applications will be available soon.')
+    if (user?.role === 'applicant') {
+      navigate('/careers/' + jobId + '/apply')
+      return
+    }
+    setNotice('Sign in as an applicant to apply for this job.')
   }
 
   if (loading) return <main className="public-page"><PublicHeader isAuthenticated={isAuthenticated} accountPath={accountPath} /><PageSkeleton /></main>
@@ -90,5 +94,8 @@ export default function CareerDetails() {
 
 function PublicSection({ title, children }) { return <section className="career-section"><h2>{title}</h2>{children}</section> }
 function LineList({ value }) { const lines = value?.split('\n').filter(Boolean) || []; return lines.length > 1 ? <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul> : <p>{value || 'Not specified'}</p> }
+
+
+
 
 

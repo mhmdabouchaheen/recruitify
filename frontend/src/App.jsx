@@ -13,6 +13,9 @@ const Register = lazy(() => import('./pages/Register'))
 const Careers = lazy(() => import('./pages/Careers'))
 const CareerDetails = lazy(() => import('./pages/CareerDetails'))
 const Profile = lazy(() => import('./pages/Profile'))
+const ApplyJob = lazy(() => import('./pages/ApplyJob'))
+const Applications = lazy(() => import('./pages/Applications'))
+const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
 const Jobs = lazy(() => import('./pages/Jobs'))
 const JobFormPage = lazy(() => import('./pages/JobFormPage'))
@@ -31,6 +34,9 @@ export default function App() {
             <Route path="/careers" element={<Careers />} />
             <Route path="/careers/:jobId" element={<CareerDetails />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/careers/:jobId/apply" element={<ProtectedRoute><ApplyJob /></ProtectedRoute>} />
+            <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
+            <Route path="/applications/:applicationId" element={<ProtectedRoute><ApplicationDetails /></ProtectedRoute>} />
             <Route path="/*" element={
               <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
@@ -53,6 +59,8 @@ export default function App() {
     </AuthProvider>
   )
 }
+
+
 
 
 
