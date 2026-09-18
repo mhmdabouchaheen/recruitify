@@ -1,4 +1,4 @@
-import { getAccessToken } from './authToken'
+﻿import { getAccessToken } from './authToken'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
@@ -14,15 +14,16 @@ export class ApiError extends Error {
 export async function apiRequest(path, options = {}) {
   const token = getAccessToken()
   const headers = new Headers(options.headers)
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   if (!headers.has('Accept')) headers.set('Accept', 'application/json')
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (options.body && !headers.has('Content-Type') && !isFormData) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
-    body: options.body && typeof options.body !== 'string'
+    body: options.body && typeof options.body !== 'string' && !isFormData
       ? JSON.stringify(options.body)
       : options.body,
   })

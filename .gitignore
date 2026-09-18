@@ -42,3 +42,6 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local uploaded files
+backend/uploads/

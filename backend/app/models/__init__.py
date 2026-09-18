@@ -1,3 +1,4 @@
+﻿from app.models.applicant import ApplicantProfile, CV
 from app.models.job import (
     ApplicationQuestion,
     EmploymentType,
@@ -10,7 +11,9 @@ from app.models.job import (
 from app.models.user import User, UserRole
 
 __all__ = [
+    "ApplicantProfile",
     "ApplicationQuestion",
+    "CV",
     "EmploymentType",
     "Job",
     "JobSkill",

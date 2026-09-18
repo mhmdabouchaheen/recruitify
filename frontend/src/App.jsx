@@ -12,6 +12,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Careers = lazy(() => import('./pages/Careers'))
 const CareerDetails = lazy(() => import('./pages/CareerDetails'))
+const Profile = lazy(() => import('./pages/Profile'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
 const Jobs = lazy(() => import('./pages/Jobs'))
 const JobFormPage = lazy(() => import('./pages/JobFormPage'))
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/careers/:jobId" element={<CareerDetails />} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/*" element={
               <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
@@ -51,6 +53,8 @@ export default function App() {
     </AuthProvider>
   )
 }
+
+
 
 
 

@@ -53,7 +53,7 @@ export default function Careers() {
   }), [result.jobs])
 
   const hasFilters = Object.values(filters).some(Boolean)
-  const accountPath = user?.role === 'applicant' ? '/careers' : '/overview'
+  const accountPath = user?.role === 'applicant' ? '/profile' : '/overview'
 
   return <main className="public-page">
     <PublicHeader isAuthenticated={isAuthenticated} accountPath={accountPath} />
@@ -156,5 +156,6 @@ function CareersState({ title, description }) {
 function unique(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
+
 
 

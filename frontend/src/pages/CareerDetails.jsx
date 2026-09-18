@@ -31,7 +31,7 @@ export default function CareerDetails() {
     }
   }, [jobId])
 
-  const accountPath = user?.role === 'applicant' ? '/careers' : '/overview'
+  const accountPath = user?.role === 'applicant' ? '/profile' : '/overview'
   const loading = result.id !== jobId
   const job = result.job
 
@@ -90,4 +90,5 @@ export default function CareerDetails() {
 
 function PublicSection({ title, children }) { return <section className="career-section"><h2>{title}</h2>{children}</section> }
 function LineList({ value }) { const lines = value?.split('\n').filter(Boolean) || []; return lines.length > 1 ? <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul> : <p>{value || 'Not specified'}</p> }
+
 
