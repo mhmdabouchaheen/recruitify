@@ -1,5 +1,6 @@
 from app.models.ai_analysis import ApplicationMatch, CVAnalysis
 from app.models.applicant import ApplicantProfile, CV
+from app.models.contract import Contract, ContractStatus, ContractType
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.interview import (
     Interview,
@@ -33,6 +34,9 @@ __all__ = [
     "ApplicationStatus",
     "CV",
     "CVAnalysis",
+    "ContractType",
+    "ContractStatus",
+    "Contract",
     "EmploymentType",
     "Interview",
     "InterviewEvaluation",

@@ -42,6 +42,7 @@ class Application(Base):
     notes: Mapped[list["ApplicationNote"]] = relationship(back_populates="application", cascade="all, delete-orphan")
     activities: Mapped[list["ApplicationActivity"]] = relationship(back_populates="application", cascade="all, delete-orphan")
     interviews: Mapped[list["Interview"]] = relationship(back_populates="application", cascade="all, delete-orphan")
+    contract: Mapped["Contract | None"] = relationship(back_populates="application", cascade="all, delete-orphan", uselist=False)
 
 
 class ApplicationAnswer(Base):

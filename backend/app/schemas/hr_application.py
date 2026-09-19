@@ -36,6 +36,7 @@ class HRApplicationListItem(BaseModel):
     department: str
     location: str
     match_score: float | None = None
+    contract_status: str | None = None
 
 
 class HRApplicationDetail(BaseModel):

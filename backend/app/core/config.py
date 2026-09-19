@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     ai_provider: str | None = None
     ai_model: str | None = None
     ai_api_key: str | None = None
+    contract_company_name: str = "Recruitify"
 
     model_config = SettingsConfigDict(
         env_file=(".env", "backend/.env"),

@@ -134,6 +134,7 @@ function CandidateCard({ application, updating, onMove }) {
     <p className="pipeline-job"><BriefcaseBusiness size={13} />{application.job_title}</p>
     <p className="pipeline-date">Applied {formatDate(application.submitted_at)}</p>
     <div className="pipeline-match"><Sparkles size={13} /><span>AI Match</span><strong>{typeof application.match_score === 'number' ? `${Math.round(application.match_score)}%` : 'Not analyzed'}</strong></div>
+    {application.contract_status && <div className="pipeline-contract-indicator">Contract: {contractLabel(application.contract_status)}</div>}
     <div className="pipeline-card-actions"><Link className="text-action" to={`/candidates/${application.id}`}>View candidate</Link>{canScheduleInterview && <Link className="text-action" to={`/candidates/${application.id}`}>Schedule interview</Link>}</div>
     {options.length > 0 && <div className="pipeline-move-actions">{options.map((status) => <button key={status} disabled={updating} onClick={() => onMove(application, status)}>{updating ? 'Moving...' : `Move to ${formatApplicationStatus(status)}`} <ArrowRight size={12} /></button>)}</div>}
   </article>
@@ -142,3 +143,5 @@ function CandidateCard({ application, updating, onMove }) {
 function PipelineState({ title, description }) { return <div className="careers-state"><span><FileText size={22} /></span><h2>{title}</h2><p>{description}</p></div> }
 function initials(application) { return `${application.applicant_first_name?.[0] || ''}${application.applicant_last_name?.[0] || ''}`.toUpperCase() || 'C' }
 function formatDate(value) { return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value)) }
+
+function contractLabel(status) { return status === 'accepted' ? 'Accepted / Hired' : status.split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ') }

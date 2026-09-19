@@ -7,6 +7,7 @@ from app.models.applicant import ApplicantProfile
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.job import Job
 from app.models.ai_analysis import ApplicationMatch
+from app.models.contract import Contract
 from app.models.user import User
 from app.schemas.hr_application import (
     HRApplicantProfileResponse,
@@ -64,9 +65,12 @@ def list_hr_applications(
     applications = list(db.scalars(statement).all())
     if not applications:
         return []
-    match_rows = db.execute(select(ApplicationMatch.application_id, ApplicationMatch.overall_score).where(ApplicationMatch.application_id.in_([application.id for application in applications]))).all()
+    application_ids = [application.id for application in applications]
+    match_rows = db.execute(select(ApplicationMatch.application_id, ApplicationMatch.overall_score).where(ApplicationMatch.application_id.in_(application_ids))).all()
+    contract_rows = db.execute(select(Contract.application_id, Contract.status).where(Contract.application_id.in_(application_ids))).all()
     scores = {application_id: overall_score for application_id, overall_score in match_rows}
-    return [_to_list_item(application, scores.get(application.id)) for application in applications]
+    contract_statuses = {application_id: contract_status.value for application_id, contract_status in contract_rows}
+    return [_to_list_item(application, scores.get(application.id), contract_statuses.get(application.id)) for application in applications]
 
 
 def get_hr_application(db: Session, application_id: int) -> Application | None:
@@ -148,7 +152,7 @@ def list_application_activities(db: Session, application_id: int) -> list[HRAppl
     return [_to_activity_response(activity) for activity in db.scalars(statement).all()]
 
 
-def _to_list_item(application: Application, match_score: float | None = None) -> HRApplicationListItem:
+def _to_list_item(application: Application, match_score: float | None = None, contract_status: str | None = None) -> HRApplicationListItem:
     return HRApplicationListItem(
         id=application.id,
         status=application.status,
@@ -162,6 +166,7 @@ def _to_list_item(application: Application, match_score: float | None = None) ->
         department=application.job.department,
         location=application.job.location,
         match_score=match_score,
+        contract_status=contract_status,
     )
 
 
