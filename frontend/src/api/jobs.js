@@ -95,8 +95,15 @@ function normalizeJobPayload(job, status) {
   const nextStatus = status || job.status || 'Draft'
   const description = job.description || job.summary || 'Draft job description'
   const requirements = job.requirements || 'Draft requirements'
-
-  return {
+  const applicationQuestions = (job.applicationQuestions || [])
+    .filter((question) => question.text?.trim())
+    .map((question, index) => ({
+      question: question.text,
+      question_type: questionToApi[question.type] || question.type || 'short_text',
+      is_required: Boolean(question.required),
+      display_order: question.displayOrder ?? index,
+    }))
+  const payload = {
     title: job.title,
     department: job.department,
     location: job.location,
@@ -114,15 +121,9 @@ function normalizeJobPayload(job, status) {
       ...(job.requiredSkills || []).map((skill) => mapSkill(skill, 'required')),
       ...(job.preferredSkills || []).map((skill) => mapSkill(skill, 'preferred')),
     ],
-    application_questions: (job.applicationQuestions || [])
-      .filter((question) => question.text?.trim())
-      .map((question, index) => ({
-        question: question.text,
-        question_type: questionToApi[question.type] || question.type || 'short_text',
-        is_required: Boolean(question.required),
-        display_order: question.displayOrder ?? index,
-      })),
   }
+  if (applicationQuestions.length > 0) payload.application_questions = applicationQuestions
+  return payload
 }
 
 export function mapJob(job) {

@@ -25,6 +25,8 @@ export function JobForm({ initialJob, mode, onSave }) {
   const [saveState, setSaveState] = useState(
     mode === 'edit' ? `${initialJob.status} vacancy` : 'New vacancy',
   )
+  const [pendingRequiredSkill, setPendingRequiredSkill] = useState('')
+  const [pendingPreferredSkill, setPendingPreferredSkill] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -62,45 +64,83 @@ export function JobForm({ initialJob, mode, onSave }) {
     if (errors[key]) setErrors((current) => ({ ...current, [key]: '' }))
   }
 
-  const validate = () => {
+
+  const withPendingSkills = (job = form) => {
+    const addPending = (skills, pending) => {
+      const skill = pending.trim()
+      return skill && !skills.includes(skill) ? [...skills, skill] : skills
+    }
+    return {
+      ...job,
+      requiredSkills: addPending(job.requiredSkills || [], pendingRequiredSkill),
+      preferredSkills: addPending(job.preferredSkills || [], pendingPreferredSkill),
+    }
+  }
+
+  const clearPendingSkills = () => {
+    setPendingRequiredSkill('')
+    setPendingPreferredSkill('')
+  }
+
+  const updatePendingSkill = (setter, value) => {
+    setter(value)
+    setDirty(true)
+    setApiError('')
+    setSaveState('Not saved')
+  }
+
+  const validate = (job = form) => {
     const next = {}
-    if (!form.title.trim()) next.title = 'Enter a job title.'
-    if (!form.department) next.department = 'Select a department.'
-    if (!form.location) next.location = 'Select a location.'
-    if (!form.employmentType) next.employmentType = 'Select an employment type.'
-    if (!form.description.trim()) next.description = 'Add a job description before publishing.'
-    if (!form.requirements.trim()) next.requirements = 'Add requirements before saving.'
-    if (Number(form.openings) < 1) next.openings = 'Openings must be at least 1.'
-    if (form.applicationDeadline && form.applicationDeadline < '2026-09-15') next.applicationDeadline = 'Choose today or a future date.'
-    if (form.applicationQuestions.some((question) => question.required && !question.text.trim())) next.questions = 'Required questions cannot be blank.'
+    if (!job.title.trim()) next.title = 'Enter a job title.'
+    if (!job.department) next.department = 'Select a department.'
+    if (!job.location) next.location = 'Select a location.'
+    if (!job.employmentType) next.employmentType = 'Select an employment type.'
+    if (!job.description.trim()) next.description = 'Add a job description before publishing.'
+    if (!job.requirements.trim()) next.requirements = 'Add requirements before saving.'
+    if (Number(job.openings) < 1) next.openings = 'Openings must be at least 1.'
+    if (job.applicationDeadline && job.applicationDeadline < '2026-09-15') next.applicationDeadline = 'Choose today or a future date.'
+    if (job.applicationQuestions.some((question) => question.required && !question.text.trim())) next.questions = 'Required questions cannot be blank.'
     setErrors(next)
-    if (Object.keys(next).length) document.getElementById(Object.keys(next)[0])?.focus()
+    if (Object.keys(next).length) {
+      setApiError('Please fix the highlighted fields before saving.')
+      document.getElementById(Object.keys(next)[0])?.focus()
+      document.getElementById(Object.keys(next)[0])?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    }
     return Object.keys(next).length === 0
   }
 
   const saveDraft = async () => {
-    if (!validate() || submitting) return
+    const jobToSave = withPendingSkills()
+    if (!validate(jobToSave) || submitting) return
     setSubmitting(true)
     setApiError('')
+    setSaveState('Saving...')
     try {
-      const saved = await onSave({ ...form, status: form.status === 'Published' ? 'Published' : 'Draft' }, 'draft')
+      const saved = await onSave({ ...jobToSave, status: jobToSave.status === 'Published' ? 'Published' : 'Draft' }, 'draft')
       setForm(saved)
+      clearPendingSkills()
       setDirty(false)
       setSaveState(saved.status === 'Published' ? 'Changes saved' : 'Draft saved')
       if (mode === 'create') navigate(`/jobs/${saved.id}`)
     } catch (error) {
+      setSaveState('Not saved')
       setApiError(error.status === 403 ? 'You do not have permission to manage jobs.' : error.message || 'The job could not be saved.')
     } finally {
       setSubmitting(false)
     }
   }
-  const requestPublish = () => validate() && setPublishOpen(true)
+  const requestPublish = () => {
+    const jobToSave = withPendingSkills()
+    if (validate(jobToSave)) setPublishOpen(true)
+  }
   const publish = async () => {
     if (submitting) return
     setSubmitting(true)
     setApiError('')
     try {
-      const saved = await onSave({ ...form, status: 'Published' }, 'publish')
+      const jobToSave = withPendingSkills()
+      const saved = await onSave({ ...jobToSave, status: 'Published' }, 'publish')
+      clearPendingSkills()
       setDirty(false)
       setPublishOpen(false)
       navigate(`/jobs/${saved.id}`)
@@ -144,7 +184,7 @@ export function JobForm({ initialJob, mode, onSave }) {
         <div className="form-progress-note"><strong>{completion.filter(Boolean).length} of 6</strong><span>sections ready</span></div>
       </aside>
 
-      <form className="job-form" onSubmit={(event) => event.preventDefault()} noValidate>
+      <form className="job-form" id="job-edit-form" onSubmit={(event) => { event.preventDefault(); saveDraft() }} noValidate>
         <FormSection id="basic" number="01" title="Basic information" description="Define the role and where it sits in your organization.">
           <div className="form-grid">
             <Field label={<>Job title <Required /></>} error={errors.title}><input id="title" value={form.title} onChange={(e) => update('title', e.target.value)} /></Field>
@@ -175,8 +215,8 @@ export function JobForm({ initialJob, mode, onSave }) {
         </FormSection>
 
         <FormSection id="skills" number="04" title="Skills" description="Separate essential capabilities from useful additions.">
-          <SkillsInput label="Required skills" skills={form.requiredSkills} onChange={(value) => update('requiredSkills', value)} />
-          <SkillsInput label="Preferred skills" skills={form.preferredSkills} onChange={(value) => update('preferredSkills', value)} />
+          <SkillsInput label="Required skills" skills={form.requiredSkills} value={pendingRequiredSkill} onInputChange={(value) => updatePendingSkill(setPendingRequiredSkill, value)} onChange={(value) => update('requiredSkills', value)} />
+          <SkillsInput label="Preferred skills" skills={form.preferredSkills} value={pendingPreferredSkill} onInputChange={(value) => updatePendingSkill(setPendingPreferredSkill, value)} onChange={(value) => update('preferredSkills', value)} />
         </FormSection>
 
         <FormSection id="questions" number="05" title="Application questions" description="Collect role-specific information when candidates apply.">
@@ -198,7 +238,7 @@ export function JobForm({ initialJob, mode, onSave }) {
         <p>{dirty ? 'You have unsaved changes.' : saveState === 'Draft saved' ? 'Not published' : mode === 'edit' ? `${form.status} · ready to update` : 'Not published'}</p>
         <Button variant="secondary" icon={Eye} onClick={preview}>Preview</Button>
         {apiError && <p className="form-error" role="alert">{apiError}</p>}
-        <Button variant="secondary" icon={Save} onClick={saveDraft} disabled={submitting}>{submitting ? 'Saving...' : mode === 'edit' ? 'Save changes' : 'Save draft'}</Button>
+        <Button type="submit" form="job-edit-form" variant="secondary" icon={Save} disabled={submitting}>{submitting ? 'Saving...' : mode === 'edit' ? 'Save changes' : 'Save draft'}</Button>
         <Button onClick={requestPublish} disabled={submitting}>{submitting ? 'Saving...' : form.status === 'Published' ? 'Save & publish' : 'Publish job'}</Button>
         <button className="cancel-form" onClick={() => requestLeave(mode === 'edit' ? `/jobs/${form.id}` : '/jobs')}>Cancel</button>
       </aside>
@@ -220,14 +260,13 @@ function FormSection({ id, number, title, description, children }) {
 }
 function Required() { return <span className="required" aria-label="required">*</span> }
 
-function SkillsInput({ label, skills, onChange }) {
-  const [value, setValue] = useState('')
+function SkillsInput({ label, skills, value, onInputChange, onChange }) {
   const add = () => {
     const skill = value.trim()
     if (skill && !skills.includes(skill)) onChange([...skills, skill])
-    setValue('')
+    onInputChange('')
   }
-  return <div className="skills-field"><label>{label}</label><div className="skill-entry"><input value={value} placeholder="Type a skill and press Enter" onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add() } }} /><Button variant="secondary" onClick={add}>Add</Button></div><div className="skill-list">{skills.map((skill) => <span key={skill}>{skill}<button aria-label={`Remove ${skill}`} onClick={() => onChange(skills.filter((item) => item !== skill))}><X size={11} /></button></span>)}</div></div>
+  return <div className="skills-field"><label>{label}</label><div className="skill-entry"><input value={value} placeholder="Type a skill and press Enter" onBlur={add} onChange={(e) => onInputChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add() } }} /><Button type="button" variant="secondary" onClick={add}>Add</Button></div><div className="skill-list">{skills.map((skill) => <span key={skill}>{skill}<button type="button" aria-label={`Remove ${skill}`} onClick={() => onChange(skills.filter((item) => item !== skill))}><X size={11} /></button></span>)}</div></div>
 }
 
 function QuestionsEditor({ questions, onChange }) {

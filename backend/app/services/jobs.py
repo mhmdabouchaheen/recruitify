@@ -1,7 +1,8 @@
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.application import ApplicationAnswer
 from app.models.job import (
     ApplicationQuestion,
     EmploymentType,
@@ -43,6 +44,17 @@ def _build_application_questions(
         )
         for question in job_in.application_questions
     ]
+
+
+def _job_has_answered_questions(db: Session, job: Job) -> bool:
+    question_ids = [question.id for question in job.application_questions if question.id is not None]
+    if not question_ids:
+        return False
+    return db.scalar(
+        select(func.count())
+        .select_from(ApplicationAnswer)
+        .where(ApplicationAnswer.question_id.in_(question_ids))
+    ) > 0
 
 
 def create_job(db: Session, job_in: JobCreate, created_by_id: int) -> Job:
@@ -122,7 +134,7 @@ def update_job(db: Session, job: Job, job_in: JobUpdate) -> Job:
 
         if job_in.skills is not None:
             job.skills = _build_job_skills(job_in)
-        if job_in.application_questions is not None:
+        if job_in.application_questions is not None and not _job_has_answered_questions(db, job):
             job.application_questions = _build_application_questions(job_in)
 
         db.add(job)
