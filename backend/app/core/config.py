@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    ai_provider: str | None = None
+    ai_model: str | None = None
+    ai_api_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=(".env", "backend/.env"),
@@ -22,3 +25,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+

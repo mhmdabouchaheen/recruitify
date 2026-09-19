@@ -62,3 +62,12 @@ export async function createHrApplicationNote(applicationId, content) {
 export async function getHrApplicationActivities(applicationId) {
   return apiRequest(`/hr/applications/${applicationId}/activities`)
 }
+
+export async function getHrApplicationAiAnalysis(applicationId) {
+  return apiRequest(`/hr/applications/${applicationId}/ai-analysis`)
+}
+
+export async function runHrApplicationAiAnalysis(applicationId, refresh = false) {
+  const suffix = refresh ? '?refresh=true' : ''
+  return apiRequest(`/hr/applications/${applicationId}/ai-analysis${suffix}`, { method: 'POST' })
+}

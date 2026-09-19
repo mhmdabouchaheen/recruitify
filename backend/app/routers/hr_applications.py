@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.dependencies.auth import require_hr_or_admin
 from app.models.application import ApplicationStatus
 from app.models.user import User
+from app.schemas.ai_analysis import ApplicationMatchResponse
 from app.schemas.hr_application import (
     HRApplicationActivityResponse,
     HRApplicationDetail,
@@ -15,6 +16,9 @@ from app.schemas.hr_application import (
     HRApplicationNoteResponse,
     HRApplicationStatusUpdate,
 )
+from app.services.ai_analysis import AIProviderError, AIProviderUnavailable
+from app.services.candidate_matching import get_stored_application_match, run_application_ai_analysis
+from app.services.cv_extraction import CVExtractionError
 from app.services.hr_applications import (
     create_application_note,
     get_hr_application_detail,
@@ -100,3 +104,36 @@ def list_activities_endpoint(
     if activities is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
     return activities
+
+
+@router.get("/{application_id}/ai-analysis", response_model=ApplicationMatchResponse)
+def get_ai_analysis_endpoint(
+    application_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr_or_admin),
+):
+    match = get_stored_application_match(db, application_id)
+    if match is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI analysis has not been run for this application")
+    return match
+
+
+@router.post("/{application_id}/ai-analysis", response_model=ApplicationMatchResponse)
+def run_ai_analysis_endpoint(
+    application_id: int,
+    refresh: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr_or_admin),
+):
+    try:
+        match = run_application_ai_analysis(db, application_id, refresh=refresh)
+    except CVExtractionError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except AIProviderUnavailable as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except AIProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI analysis provider could not complete the request") from exc
+    if match is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    return match
+

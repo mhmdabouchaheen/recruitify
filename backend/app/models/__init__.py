@@ -1,3 +1,4 @@
+from app.models.ai_analysis import ApplicationMatch, CVAnalysis
 from app.models.applicant import ApplicantProfile, CV
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.job import (
@@ -13,6 +14,7 @@ from app.models.user import User, UserRole
 
 __all__ = [
     "ApplicantProfile",
+    "ApplicationMatch",
     "Application",
     "ApplicationActivity",
     "ApplicationAnswer",
@@ -20,6 +22,7 @@ __all__ = [
     "ApplicationQuestion",
     "ApplicationStatus",
     "CV",
+    "CVAnalysis",
     "EmploymentType",
     "Job",
     "JobSkill",
@@ -29,3 +32,4 @@ __all__ = [
     "UserRole",
     "WorkplaceType",
 ]
+
