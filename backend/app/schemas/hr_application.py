@@ -35,6 +35,7 @@ class HRApplicationListItem(BaseModel):
     job_title: str
     department: str
     location: str
+    match_score: float | None = None
 
 
 class HRApplicationDetail(BaseModel):

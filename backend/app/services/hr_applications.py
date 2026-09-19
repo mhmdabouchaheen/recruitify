@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.applicant import ApplicantProfile
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.job import Job
+from app.models.ai_analysis import ApplicationMatch
 from app.models.user import User
 from app.schemas.hr_application import (
     HRApplicantProfileResponse,
@@ -49,6 +50,7 @@ def list_hr_applications(
         select(Application)
         .join(Application.applicant)
         .join(Application.job)
+        .outerjoin(ApplicationMatch, ApplicationMatch.application_id == Application.id)
         .options(selectinload(Application.applicant), selectinload(Application.job))
     )
     if job_id is not None:
@@ -59,7 +61,12 @@ def list_hr_applications(
         term = f"%{search.strip()}%"
         statement = statement.where(or_(User.first_name.ilike(term), User.last_name.ilike(term), User.email.ilike(term)))
     statement = statement.order_by(Application.submitted_at.desc(), Application.id.desc()).offset(skip).limit(limit)
-    return [_to_list_item(application) for application in db.scalars(statement).all()]
+    applications = list(db.scalars(statement).all())
+    if not applications:
+        return []
+    match_rows = db.execute(select(ApplicationMatch.application_id, ApplicationMatch.overall_score).where(ApplicationMatch.application_id.in_([application.id for application in applications]))).all()
+    scores = {application_id: overall_score for application_id, overall_score in match_rows}
+    return [_to_list_item(application, scores.get(application.id)) for application in applications]
 
 
 def get_hr_application(db: Session, application_id: int) -> Application | None:
@@ -141,7 +148,7 @@ def list_application_activities(db: Session, application_id: int) -> list[HRAppl
     return [_to_activity_response(activity) for activity in db.scalars(statement).all()]
 
 
-def _to_list_item(application: Application) -> HRApplicationListItem:
+def _to_list_item(application: Application, match_score: float | None = None) -> HRApplicationListItem:
     return HRApplicationListItem(
         id=application.id,
         status=application.status,
@@ -154,6 +161,7 @@ def _to_list_item(application: Application) -> HRApplicationListItem:
         job_title=application.job.title,
         department=application.job.department,
         location=application.job.location,
+        match_score=match_score,
     )
 
 

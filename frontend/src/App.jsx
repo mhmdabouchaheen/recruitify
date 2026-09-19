@@ -16,6 +16,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const ApplyJob = lazy(() => import('./pages/ApplyJob'))
 const Applications = lazy(() => import('./pages/Applications'))
 const Candidates = lazy(() => import('./pages/Candidates'))
+const Pipeline = lazy(() => import('./pages/Pipeline'))
 const CandidateDetails = lazy(() => import('./pages/CandidateDetails'))
 const Interviews = lazy(() => import('./pages/Interviews'))
 const InterviewDetails = lazy(() => import('./pages/InterviewDetails'))
@@ -49,6 +50,7 @@ export default function App() {
                     <Route path="/overview" element={<Overview />} />
                     <Route path="/jobs" element={<Jobs />} />
                     <Route path="/candidates" element={<Candidates />} />
+                    <Route path="/pipeline" element={<Pipeline />} />
                     <Route path="/candidates/:applicationId" element={<CandidateDetails />} />
                     <Route path="/interviews" element={<Interviews />} />
                     <Route path="/interviews/:interviewId" element={<InterviewDetails />} />

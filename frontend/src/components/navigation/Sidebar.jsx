@@ -9,11 +9,11 @@ import { useAuth } from '../../context/useAuth'
 
 const nav = [
   [LayoutDashboard, 'Overview', '/overview'],
-  [BriefcaseBusiness, 'Jobs', '/jobs'],
-  [UsersRound, 'Candidates', '/candidates'],
-  [KanbanSquare, 'Pipeline'],
+  [BriefcaseBusiness, 'Jobs', '/jobs', null, ['hr', 'admin']],
+  [UsersRound, 'Candidates', '/candidates', null, ['hr', 'admin']],
+  [KanbanSquare, 'Pipeline', '/pipeline', null, ['hr', 'admin']],
   [CalendarDays, 'Interviews', '/interviews'],
-  [BarChart3, 'Reports'],
+  [BarChart3, 'Reports', null, null, ['hr', 'admin']],
   [Bell, 'Notifications', null, 4],
 ]
 
@@ -42,7 +42,7 @@ export function Sidebar({ open, onNavigate }) {
       <p className="nav-label">Workspace</p>
       <nav>
         <ul className="nav-list">
-          {nav.map(([Icon, label, path, count]) => (
+          {nav.filter(([, , , , roles]) => !roles || roles.includes(user?.role)).map(([Icon, label, path, count]) => (
             <li key={label}>
               {path ? <NavLink
                 to={path}
