@@ -17,6 +17,8 @@ const ApplyJob = lazy(() => import('./pages/ApplyJob'))
 const Applications = lazy(() => import('./pages/Applications'))
 const Candidates = lazy(() => import('./pages/Candidates'))
 const CandidateDetails = lazy(() => import('./pages/CandidateDetails'))
+const Interviews = lazy(() => import('./pages/Interviews'))
+const InterviewDetails = lazy(() => import('./pages/InterviewDetails'))
 const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'))
 const Overview = lazy(() => import('./pages/Overview').then((module) => ({ default: module.Overview })))
 const Jobs = lazy(() => import('./pages/Jobs'))
@@ -48,6 +50,8 @@ export default function App() {
                     <Route path="/jobs" element={<Jobs />} />
                     <Route path="/candidates" element={<Candidates />} />
                     <Route path="/candidates/:applicationId" element={<CandidateDetails />} />
+                    <Route path="/interviews" element={<Interviews />} />
+                    <Route path="/interviews/:interviewId" element={<InterviewDetails />} />
                     <Route path="/jobs/new" element={<JobFormPage />} />
                     <Route path="/jobs/:jobId" element={<JobDetails />} />
                     <Route path="/jobs/:jobId/edit" element={<JobFormPage />} />

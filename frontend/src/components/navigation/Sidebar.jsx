@@ -12,7 +12,7 @@ const nav = [
   [BriefcaseBusiness, 'Jobs', '/jobs'],
   [UsersRound, 'Candidates', '/candidates'],
   [KanbanSquare, 'Pipeline'],
-  [CalendarDays, 'Interviews'],
+  [CalendarDays, 'Interviews', '/interviews'],
   [BarChart3, 'Reports'],
   [Bell, 'Notifications', null, 4],
 ]
