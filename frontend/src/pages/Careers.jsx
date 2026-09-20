@@ -3,7 +3,7 @@ import { BriefcaseBusiness, CalendarDays, LogIn, LogOut, MapPin, Search, UserRou
 import { Link, useNavigate } from 'react-router-dom'
 
 import { getPublicJobs } from '../api/publicJobs'
-import { Button, Field, Skeleton } from '../components/ui'
+import { Button, Skeleton } from '../components/ui'
 import { useAuth } from '../context/useAuth'
 import { formatDate } from '../utils/jobs'
 
@@ -23,7 +23,7 @@ const workplaceOptions = [
 ]
 
 export default function Careers() {
-  const { isAuthenticated, logout, user } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [filters, setFilters] = useState(emptyFilters)
   const [result, setResult] = useState({ jobs: [], error: '', key: '' })
 
@@ -63,6 +63,30 @@ export default function Careers() {
   const accountPath = user?.role === 'applicant' ? '/profile' : '/overview'
 
   return <main className="public-page careers-jobs-page">
+    <PublicHeader isAuthenticated={isAuthenticated} accountPath={accountPath} />
+    <section className="careers-hero">
+      <div className="careers-hero-copy">
+        <p className="eyebrow">Career opportunities</p>
+        <h1>Find Your Next Opportunity</h1>
+        <p>Explore published Recruitify vacancies and apply with your candidate profile.</p>
+        <div className="careers-hero-search">
+          <label>
+            <Search size={18} />
+            <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Job title, skill, or keyword" type="search" />
+          </label>
+          <label>
+            <MapPin size={18} />
+            <select value={filters.location} onChange={(event) => setFilters((current) => ({ ...current, location: event.target.value }))}>
+              <option value="">All locations</option>
+              {facets.locations.map((location) => <option key={location} value={location}>{location}</option>)}
+            </select>
+          </label>
+          <Button type="button" onClick={() => setFilters((current) => ({ ...current }))}>Search</Button>
+        </div>
+        {facets.departments.length > 0 && <div className="careers-quick-chips">{facets.departments.slice(0, 6).map((department) => <button type="button" key={department} onClick={() => setFilters((current) => ({ ...current, department }))}>{department}</button>)}</div>}
+      </div>
+      <div className="careers-hero-art" aria-hidden="true"><span>People</span><span>Build</span><span>Great</span><span>Teams</span></div>
+    </section>
     <section className="careers-board" aria-label="Published vacancies">
       <aside className="careers-filter-sidebar" aria-label="Job filters">
         <div className="careers-filter-head">
@@ -76,29 +100,6 @@ export default function Careers() {
       </aside>
 
       <div className="careers-board-main">
-        <div className="careers-toolbar">
-          <label className="careers-search jobs-search">
-            <Search size={18} />
-            <input
-              value={filters.search}
-              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-              placeholder="Search by job title or keyword"
-              type="search"
-            />
-          </label>
-          <Field label="Location">
-            <select value={filters.location} onChange={(event) => setFilters((current) => ({ ...current, location: event.target.value }))}>
-              <option value="">All locations</option>
-              {facets.locations.map((location) => <option key={location} value={location}>{location}</option>)}
-            </select>
-          </Field>
-          <div className="careers-account-action">
-            {isAuthenticated
-              ? <ApplicantAccountMenu accountPath={accountPath} logout={logout} />
-              : <Button variant="secondary" icon={LogIn} render={<Link to="/login" />}>Login</Button>}
-          </div>
-        </div>
-
         <div className="careers-results-head">
           <div>
             <p className="eyebrow">Open positions</p>
@@ -190,9 +191,10 @@ function CareerCard({ job, tone }) {
         <span><BriefcaseBusiness size={14} />{job.employmentType}</span>
         <span>{job.workArrangement}</span>
       </div>
+      {(job.requiredSkills?.length > 0 || job.preferredSkills?.length > 0) && <div className="career-card-skills">{[...(job.requiredSkills || []), ...(job.preferredSkills || [])].slice(0, 4).map((skill) => <span key={skill}>{skill}</span>)}</div>}
       {(job.publishedAt || job.createdAt) && <p className="career-deadline"><CalendarDays size={14} />Posted {formatDate(job.publishedAt || job.createdAt)}</p>}
     </div>
-    <Button render={<Link to={`/careers/${job.id}/apply`} />}>Apply now</Button>
+    <Button render={<Link to={`/careers/${job.id}`} />}>View Details</Button>
   </article>
 }
 

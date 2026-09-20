@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, CheckCircle2, FileText, MapPin } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getApplicantCvs } from '../api/applicant'
@@ -77,14 +77,23 @@ export default function ApplyJob() {
 
   return <main className="public-page">
     <PublicHeader isAuthenticated accountPath={user?.role === 'applicant' ? '/profile' : '/overview'} />
-    <div className="profile-page-shell">
-      <Link className="back-link" to={`/careers/${job.id}`}><ArrowLeft size={14} />Back to job</Link>
-      <header className="profile-head"><div><p className="eyebrow">Apply now</p><h1>{job.title}</h1><p>{job.department} · {job.location} · {job.employmentType}</p></div></header>
+    <div className="apply-shell">
+      <Link className="back-link" to={`/careers/${job.id}`}><ArrowLeft size={14} />Back to job details</Link>
+      <section className="apply-job-summary">
+        <div className="apply-job-icon"><BriefcaseBusiness size={28} /></div>
+        <div>
+          <p className="eyebrow">Application</p>
+          <h1>{job.title}</h1>
+          <div className="apply-job-meta"><span>{job.department}</span><span><MapPin size={14} />{job.location}</span><span>{job.employmentType}</span><span>{job.workArrangement}</span></div>
+          {(job.requiredSkills?.length > 0 || job.preferredSkills?.length > 0) && <div className="career-skills">{[...(job.requiredSkills || []), ...(job.preferredSkills || [])].slice(0, 6).map((skill) => <span key={skill}>{skill}</span>)}</div>}
+        </div>
+      </section>
+      <header className="apply-heading"><h2>Apply for this position</h2><p>Complete the information below to submit your application.</p></header>
       {error && <p className="login-error" role="alert">{error}</p>}
-      {cvs.length === 0 ? <ApplicationState title="Upload a CV first" description="You need a PDF CV in your profile before applying." action={<Button render={<Link to="/profile" />}>Go to profile</Button>} /> : <form className="profile-grid" onSubmit={submit}>
-        <section className="profile-card"><h2>Select CV</h2><div className="application-cv-options">{cvs.map((cv) => <label className={`application-cv-option ${String(cv.id) === cvId ? 'active' : ''}`} key={cv.id}><input type="radio" name="cv" value={cv.id} checked={String(cv.id) === cvId} onChange={(event) => setCvId(event.target.value)} /><FileText size={17} /><span><strong>{cv.original_filename}</strong>{cv.is_primary && <em><CheckCircle2 size={13} />Primary</em>}</span></label>)}</div></section>
-        <section className="profile-card"><h2>Application questions</h2>{job.applicationQuestions?.length ? <div className="profile-fields">{job.applicationQuestions.map((question) => <Field key={question.id} label={`${question.text}${question.required ? ' *' : ''}`}><textarea rows={4} value={answers[question.id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} required={question.required} /></Field>)}</div> : <p className="muted-copy">No additional questions for this job.</p>}</section>
-        <div className="profile-actions"><Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit application'}</Button></div>
+      {cvs.length === 0 ? <ApplicationState title="Upload a CV first" description="You need a PDF CV in your profile before applying." action={<Button render={<Link to="/profile" />}>Go to profile</Button>} /> : <form className="apply-form" onSubmit={submit}>
+        <section className="profile-card apply-step-card"><div className="apply-step-head"><span>1</span><div><h2>Your CV</h2><p>Select the saved PDF CV you want Recruitify to submit.</p></div></div><div className="application-cv-options">{cvs.map((cv) => <label className={`application-cv-option ${String(cv.id) === cvId ? 'active' : ''}`} key={cv.id}><input type="radio" name="cv" value={cv.id} checked={String(cv.id) === cvId} onChange={(event) => setCvId(event.target.value)} /><FileText size={17} /><span><strong>{cv.original_filename}</strong>{cv.is_primary && <em><CheckCircle2 size={13} />Primary</em>}</span></label>)}</div></section>
+        <section className="profile-card apply-step-card"><div className="apply-step-head"><span>2</span><div><h2>Application Questions</h2><p>Answer the real questions configured for this vacancy.</p></div></div>{job.applicationQuestions?.length ? <div className="profile-fields">{job.applicationQuestions.map((question) => <Field key={question.id} label={`${question.text}${question.required ? ' *' : ''}`}><textarea rows={4} value={answers[question.id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} required={question.required} /></Field>)}</div> : <p className="muted-copy">No additional questions for this job.</p>}</section>
+        <div className="apply-submit-bar"><p>I confirm that the information provided is accurate and complete.</p><Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Application'}</Button></div>
       </form>}
     </div>
   </main>

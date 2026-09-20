@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BriefcaseBusiness, FileText, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, Clock3, FileText, MoreHorizontal, Search, Sparkles, UsersRound, XCircle } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 
 import { formatApplicationStatus, getHrApplications, updateHrApplicationStatus } from '../api/hrApplications'
@@ -31,10 +31,11 @@ const moveOptions = {
 export default function Pipeline() {
   const { user } = useAuth()
   const isHr = user?.role === 'hr' || user?.role === 'admin'
-  const [filters, setFilters] = useState({ search: '', job_id: '', status: 'active' })
+  const [filters, setFilters] = useState({ search: '', job_id: '', department: '', status: 'active' })
   const [result, setResult] = useState({ applications: [], loading: true, error: '' })
   const [updatingId, setUpdatingId] = useState(null)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [openActionId, setOpenActionId] = useState(null)
 
   const loadApplications = async () => {
     const applications = await getHrApplications({ limit: 100 })
@@ -55,14 +56,17 @@ export default function Pipeline() {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]))
   }, [result.applications])
 
+  const departments = useMemo(() => [...new Set(result.applications.map((application) => application.department).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [result.applications])
+
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     return result.applications.filter((application) => {
       const matchesJob = !filters.job_id || String(application.job_id) === filters.job_id
+      const matchesDepartment = !filters.department || application.department === filters.department
       const name = `${application.applicant_first_name} ${application.applicant_last_name}`.toLowerCase()
       const matchesSearch = !search || name.includes(search) || application.applicant_email.toLowerCase().includes(search) || application.job_title.toLowerCase().includes(search)
       const matchesStatus = filters.status === 'active' ? !outcomeStatuses.has(application.status) : filters.status === 'outcomes' ? outcomeStatuses.has(application.status) : application.status === filters.status
-      return matchesJob && matchesSearch && matchesStatus
+      return matchesJob && matchesDepartment && matchesSearch && matchesStatus
     })
   }, [result.applications, filters])
 
@@ -75,7 +79,15 @@ export default function Pipeline() {
   }, [filtered])
 
   const outcomes = filtered.filter((application) => outcomeStatuses.has(application.status))
-  const hasFilters = filters.search || filters.job_id || filters.status !== 'active'
+  const summary = useMemo(() => {
+    const total = result.applications.length
+    const rejected = result.applications.filter((application) => application.status === 'rejected').length
+    const hired = result.applications.filter((application) => application.status === 'selected' && application.contract_status === 'accepted').length
+    const inProgress = result.applications.filter((application) => !['rejected', 'withdrawn'].includes(application.status) && !(application.status === 'selected' && application.contract_status === 'accepted')).length
+    return { total, inProgress, hired, rejected }
+  }, [result.applications])
+
+  const hasFilters = filters.search || filters.job_id || filters.department || filters.status !== 'active'
 
   const moveCandidate = async (application, nextStatus) => {
     if (blockedDirectTargets.has(nextStatus)) return
@@ -87,6 +99,7 @@ export default function Pipeline() {
         ...current,
         applications: current.applications.map((item) => item.id === application.id ? { ...item, status: updated.status } : item),
       }))
+      setOpenActionId(null)
       setFilters((current) => current.status !== 'active' && current.status !== 'outcomes' ? { ...current, status: 'active' } : current)
       setMessage({ type: 'success', text: `${application.applicant_first_name} ${application.applicant_last_name} moved to ${formatApplicationStatus(nextStatus)}.` })
       loadApplications().catch((error) => setMessage({ type: 'error', text: error.message || 'Pipeline refreshed failed after the status update.' }))
@@ -100,45 +113,48 @@ export default function Pipeline() {
   if (!isHr) return <Navigate to="/interviews" replace />
 
   return <section className="pipeline-page">
-    <header className="page-head pipeline-head"><div><p className="eyebrow">Recruitment pipeline</p><h1 className="page-title">Pipeline</h1><p className="page-description">Track real candidates across active recruitment stages.</p></div></header>
+    <header className="page-head pipeline-head"><div><p className="eyebrow">Recruitment pipeline</p><h1 className="page-title">Pipeline</h1><p className="page-description">Track and manage candidates across your recruitment process.</p></div></header>
 
     <div className="pipeline-toolbar panel">
-      <label className="candidate-search"><Search size={15} /><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search candidate, email, or job" type="search" /></label>
+      <label className="candidate-search pipeline-search"><Search size={15} /><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search candidates, emails, or jobs" type="search" /></label>
       <Field label="Job vacancy"><select value={filters.job_id} onChange={(event) => setFilters((current) => ({ ...current, job_id: event.target.value }))}><option value="">All jobs</option>{jobs.map(([id, title]) => <option key={id} value={id}>{title}</option>)}</select></Field>
-      <Field label="View"><select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="active">Active pipeline</option>{activeColumns.map(([status, label]) => <option key={status} value={status}>{label}</option>)}<option value="outcomes">Rejected / Withdrawn</option></select></Field>
-      {hasFilters && <Button variant="ghost" onClick={() => setFilters({ search: '', job_id: '', status: 'active' })}>Reset</Button>}
+      {departments.length > 0 && <Field label="Department"><select value={filters.department} onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value }))}><option value="">All departments</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></Field>}
+      <Field label="View / Status"><select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="active">Active pipeline</option>{activeColumns.map(([status, label]) => <option key={status} value={status}>{label}</option>)}<option value="outcomes">Rejected / Withdrawn</option></select></Field>
+      {hasFilters && <Button variant="ghost" onClick={() => setFilters({ search: '', job_id: '', department: '', status: 'active' })}>Reset</Button>}
     </div>
 
     {message.text && <p className={message.type === 'error' ? 'login-error' : 'profile-success'} role="status">{message.text}</p>}
+
+    {!result.loading && !result.error && <div className="pipeline-summary-grid" aria-label="Pipeline summary"><SummaryCard icon={UsersRound} label="Total Candidates" value={summary.total} tone="total" /><SummaryCard icon={Clock3} label="In Progress" value={summary.inProgress} tone="progress" /><SummaryCard icon={CheckCircle2} label="Hired" value={summary.hired} tone="hired" /><SummaryCard icon={XCircle} label="Rejected" value={summary.rejected} tone="rejected" /></div>}
     {result.loading && <div className="panel pipeline-loading"><Skeleton height={26} width="32%" /><Skeleton /><Skeleton /></div>}
     {!result.loading && result.error && <PipelineState title="Unable to load pipeline" description={result.error} />}
     {!result.loading && !result.error && result.applications.length === 0 && <PipelineState title="No applications in the recruitment pipeline yet." description="Submitted applications will appear here when applicants apply to jobs." />}
     {!result.loading && !result.error && result.applications.length > 0 && filtered.length === 0 && <PipelineState title="No candidates match your filters" description="Try changing the search, job vacancy, or status view." />}
 
-    {!result.loading && !result.error && filtered.length > 0 && filters.status !== 'outcomes' && <div className="pipeline-board" aria-label="Recruitment pipeline board">{activeColumns.map(([status, label]) => <PipelineColumn key={status} status={status} label={label} applications={grouped.get(status) || []} updatingId={updatingId} onMove={moveCandidate} />)}</div>}
-    {!result.loading && !result.error && filters.status === 'outcomes' && <section className="panel pipeline-outcomes"><div className="panel-header"><div><h2 className="panel-title">Rejected / Withdrawn</h2><p className="panel-subtitle">Outcome candidates are kept separate from the active board.</p></div></div><div className="pipeline-outcome-grid">{outcomes.length ? outcomes.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={moveCandidate} />) : <p className="pipeline-empty">No rejected or withdrawn candidates match this view.</p>}</div></section>}
+    {!result.loading && !result.error && filtered.length > 0 && filters.status !== 'outcomes' && <div className="pipeline-board" aria-label="Recruitment pipeline board">{activeColumns.map(([status, label]) => <PipelineColumn key={status} status={status} label={label} applications={grouped.get(status) || []} updatingId={updatingId} onMove={moveCandidate} openActionId={openActionId} setOpenActionId={setOpenActionId} />)}</div>}
+    {!result.loading && !result.error && filters.status === 'outcomes' && <section className="panel pipeline-outcomes"><div className="panel-header"><div><h2 className="panel-title">Rejected / Withdrawn</h2><p className="panel-subtitle">Outcome candidates are kept separate from the active board.</p></div></div><div className="pipeline-outcome-grid">{outcomes.length ? outcomes.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={moveCandidate} open={openActionId === application.id} setOpenActionId={setOpenActionId} />) : <p className="pipeline-empty">No rejected or withdrawn candidates match this view.</p>}</div></section>}
   </section>
 }
 
-function PipelineColumn({ status, label, applications, updatingId, onMove }) {
+function PipelineColumn({ status, label, applications, updatingId, onMove, openActionId, setOpenActionId }) {
   const busy = applications.some((application) => updatingId === application.id)
-  return <section className={`pipeline-column ${busy ? 'is-updating' : ''}`} data-status={status}><header><span>{label}</span><strong>{applications.length}</strong></header><div className="pipeline-column-body">{applications.length ? applications.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={onMove} />) : <p className="pipeline-empty">No candidates</p>}</div></section>
+  return <section className={`pipeline-column ${busy ? 'is-updating' : ''}`} data-status={status}><header><span>{label}</span><strong>{applications.length}</strong></header><div className="pipeline-column-body">{applications.length ? applications.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={onMove} open={openActionId === application.id} setOpenActionId={setOpenActionId} />) : <div className="pipeline-empty"><strong>No candidates</strong><span>Candidates moved to this stage will appear here.</span></div>}</div></section>
 }
 
-function CandidateCard({ application, updating, onMove }) {
+function CandidateCard({ application, updating, onMove, open, setOpenActionId }) {
   const options = moveOptions[application.status] || []
   const canScheduleInterview = application.status === 'shortlisted'
+  const hired = application.status === 'selected' && application.contract_status === 'accepted'
   return <article className="pipeline-card">
-    <div className="pipeline-card-head"><span className="pipeline-initials">{initials(application)}</span><StatusBadge>{formatApplicationStatus(application.status)}</StatusBadge></div>
+    <div className="pipeline-card-head"><span className="pipeline-initials">{initials(application)}</span><div className="pipeline-card-menu"><button type="button" aria-label={`Actions for ${application.applicant_first_name} ${application.applicant_last_name}`} aria-expanded={open} onClick={() => setOpenActionId(open ? null : application.id)}><MoreHorizontal size={15} /></button>{open && <div className="pipeline-action-menu"><Link to={`/candidates/${application.id}`} onClick={() => setOpenActionId(null)}>View Candidate</Link>{canScheduleInterview && <Link to={`/candidates/${application.id}`} onClick={() => setOpenActionId(null)}>Schedule Interview</Link>}{options.map((status) => <button key={status} disabled={updating} onClick={() => onMove(application, status)}>{updating ? 'Moving...' : `Move to ${formatApplicationStatus(status)}`} <ArrowRight size={12} /></button>)}</div>}</div></div>
     <h2>{application.applicant_first_name} {application.applicant_last_name}</h2>
-    <p className="pipeline-job"><BriefcaseBusiness size={13} />{application.job_title}</p>
-    <p className="pipeline-date">Applied {formatDate(application.submitted_at)}</p>
-    <div className="pipeline-match"><Sparkles size={13} /><span>AI Match</span><strong>{typeof application.match_score === 'number' ? `${Math.round(application.match_score)}%` : 'Not analyzed'}</strong></div>
-    {application.contract_status && <div className="pipeline-contract-indicator">Contract: {contractLabel(application.contract_status)}</div>}
-    <div className="pipeline-card-actions"><Link className="text-action" to={`/candidates/${application.id}`}>View candidate</Link>{canScheduleInterview && <Link className="text-action" to={`/candidates/${application.id}`}>Schedule interview</Link>}</div>
-    {options.length > 0 && <div className="pipeline-move-actions">{options.map((status) => <button key={status} disabled={updating} onClick={() => onMove(application, status)}>{updating ? 'Moving...' : `Move to ${formatApplicationStatus(status)}`} <ArrowRight size={12} /></button>)}</div>}
+    <p className="pipeline-job" title={application.job_title}><BriefcaseBusiness size={12} />{application.job_title}</p>
+    <div className="pipeline-card-meta"><span>{formatDate(application.submitted_at)}</span>{typeof application.match_score === 'number' && <span className="pipeline-ai-score"><Sparkles size={11} />AI Match {Math.round(application.match_score)}%</span>}</div>
+    <div className="pipeline-card-flags"><StatusBadge>{hired ? 'Hired' : formatApplicationStatus(application.status)}</StatusBadge>{application.contract_status && <span className="pipeline-contract-indicator">Contract: {contractLabel(application.contract_status)}</span>}</div>
   </article>
 }
+
+function SummaryCard({ icon: Icon, label, value, tone }) { return <article className={`pipeline-summary-card ${tone}`}><span><Icon size={18} /></span><div><strong>{value}</strong><p>{label}</p></div></article> }
 
 function PipelineState({ title, description }) { return <div className="careers-state"><span><FileText size={22} /></span><h2>{title}</h2><p>{description}</p></div> }
 function initials(application) { return `${application.applicant_first_name?.[0] || ''}${application.applicant_last_name?.[0] || ''}`.toUpperCase() || 'C' }
