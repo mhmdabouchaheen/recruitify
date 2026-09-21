@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.applicant import ApplicantProfile
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationNote, ApplicationStatus
 from app.models.job import Job
+from app.models.notification import NotificationType
 from app.models.ai_analysis import ApplicationMatch
 from app.models.contract import Contract
 from app.models.user import User
+from app.services.notifications import create_notification, format_status
 from app.schemas.hr_application import (
     HRApplicantProfileResponse,
     HRApplicantSummary,
@@ -217,3 +219,4 @@ def _to_activity_response(activity: ApplicationActivity) -> HRApplicationActivit
         to_status=activity.to_status,
         created_at=activity.created_at,
     )
+

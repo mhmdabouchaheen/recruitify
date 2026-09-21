@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './layouts/AppShell'
 import { AuthProvider } from './context/AuthContext'
 import { JobsProvider } from './context/JobsContext'
+import { useAuth } from './context/useAuth'
 import { PageSkeleton } from './components/jobs/JobShared'
 import './App.css'
 import './styles/jobs.css'
@@ -26,6 +27,7 @@ const Jobs = lazy(() => import('./pages/Jobs'))
 const JobFormPage = lazy(() => import('./pages/JobFormPage'))
 const JobDetails = lazy(() => import('./pages/JobDetails'))
 const JobPreview = lazy(() => import('./pages/JobPreview'))
+const Notifications = lazy(() => import('./pages/Notifications'))
 
 export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -42,6 +44,7 @@ export default function App() {
             <Route path="/careers/:jobId/apply" element={<ProtectedRoute><ApplyJob /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
             <Route path="/applications/:applicationId" element={<ProtectedRoute><ApplicationDetails /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsSurface mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen} /></ProtectedRoute>} />
             <Route path="/*" element={
               <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
@@ -77,3 +80,14 @@ export default function App() {
 
 
 
+
+
+function NotificationsSurface({ mobileNavOpen, setMobileNavOpen }) {
+  const { user } = useAuth()
+  if (user?.role === 'applicant') return <Notifications />
+  return (
+    <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
+      <Notifications />
+    </AppShell>
+  )
+}

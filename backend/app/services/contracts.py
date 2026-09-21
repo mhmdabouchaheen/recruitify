@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import settings
 from app.models.application import Application, ApplicationActivity, ApplicationStatus
 from app.models.contract import Contract, ContractStatus
+from app.models.notification import NotificationType
 from app.models.user import User
 from app.schemas.contract import ContractCreate, ContractResponse, ContractUpdate
+from app.services.notifications import create_notification, notify_hr_admins
 
 CONTRACT_STORAGE_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "contracts"
 PDF_SIGNATURE = b"%PDF-"
@@ -144,6 +146,15 @@ def send_contract(db: Session, contract_id: int, actor_id: int) -> ContractRespo
         contract.sent_at = datetime.now(timezone.utc)
         db.add(contract)
         db.add(ApplicationActivity(application_id=contract.application_id, actor_id=actor_id, event_type="contract_sent"))
+        create_notification(
+            db,
+            user_id=contract.application.applicant_id,
+            type=NotificationType.CONTRACT_SENT,
+            title="Contract sent",
+            message=f"Your offer contract for {contract.application.job.title} is ready for review.",
+            related_application_id=contract.application_id,
+            related_job_id=contract.application.job_id,
+        )
         db.commit()
         loaded = _get_contract(db, contract_id)
         return _response(loaded) if loaded else None
@@ -164,7 +175,27 @@ def respond_to_contract(db: Session, contract_id: int, applicant_id: int, accept
         contract.status = ContractStatus.ACCEPTED if accept else ContractStatus.DECLINED
         contract.responded_at = datetime.now(timezone.utc)
         db.add(contract)
-        db.add(ApplicationActivity(application_id=contract.application_id, actor_id=applicant_id, event_type="contract_accepted" if accept else "contract_declined"))
+        event_type = "contract_accepted" if accept else "contract_declined"
+        notification_type = NotificationType.CONTRACT_ACCEPTED if accept else NotificationType.CONTRACT_DECLINED
+        db.add(ApplicationActivity(application_id=contract.application_id, actor_id=applicant_id, event_type=event_type))
+        create_notification(
+            db,
+            user_id=applicant_id,
+            type=notification_type,
+            title="Contract accepted" if accept else "Contract declined",
+            message=f"You {'accepted' if accept else 'declined'} the offer for {contract.application.job.title}.",
+            related_application_id=contract.application_id,
+            related_job_id=contract.application.job_id,
+        )
+        notify_hr_admins(
+            db,
+            type=notification_type,
+            title="Contract accepted" if accept else "Contract declined",
+            message=f"{contract.application.applicant.first_name} {contract.application.applicant.last_name} {'accepted' if accept else 'declined'} the offer for {contract.application.job.title}.",
+            actor_id=applicant_id,
+            related_application_id=contract.application_id,
+            related_job_id=contract.application.job_id,
+        )
         db.commit()
         loaded = _get_contract(db, contract_id)
         return _response(loaded) if loaded else None

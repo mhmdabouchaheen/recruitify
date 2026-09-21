@@ -14,10 +14,10 @@ const nav = [
   [KanbanSquare, 'Pipeline', '/pipeline', null, ['hr', 'admin']],
   [CalendarDays, 'Interviews', '/interviews'],
   [BarChart3, 'Reports', null, null, ['hr', 'admin']],
-  [Bell, 'Notifications', null, 4],
+  [Bell, 'Notifications', '/notifications'],
 ]
 
-export function Sidebar({ open, onNavigate }) {
+export function Sidebar({ open, onNavigate, unreadNotifications = 0 }) {
   const { logout, user } = useAuth()
   const navigate = useNavigate()
   const name = user ? `${user.first_name} ${user.last_name}` : 'Recruitify user'
@@ -42,7 +42,9 @@ export function Sidebar({ open, onNavigate }) {
       <p className="nav-label">Workspace</p>
       <nav>
         <ul className="nav-list">
-          {nav.filter(([, , , , roles]) => !roles || roles.includes(user?.role)).map(([Icon, label, path, count]) => (
+          {nav.filter(([, , , , roles]) => !roles || roles.includes(user?.role)).map(([Icon, label, path, count]) => {
+            const displayCount = label === 'Notifications' ? unreadNotifications : count
+            return (
             <li key={label}>
               {path ? <NavLink
                 to={path}
@@ -51,14 +53,14 @@ export function Sidebar({ open, onNavigate }) {
               >
                 <Icon size={17} />
                 <span>{label}</span>
-                {count && <span className="nav-count">{count}</span>}
+                {displayCount > 0 && <span className="nav-count">{displayCount}</span>}
               </NavLink> : <button className="nav-item" onClick={onNavigate}>
                 <Icon size={17} />
                 <span>{label}</span>
-                {count && <span className="nav-count">{count}</span>}
+                {displayCount > 0 && <span className="nav-count">{displayCount}</span>}
               </button>}
             </li>
-          ))}
+          )})}
         </ul>
       </nav>
       <div className="sidebar-spacer" />

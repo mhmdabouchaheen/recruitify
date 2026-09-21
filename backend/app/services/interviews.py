@@ -18,6 +18,7 @@ from app.models.interview import (
     InterviewStatus,
 )
 from app.models.job import Job, JobSkill
+from app.models.notification import NotificationType
 from app.models.user import User, UserRole
 from app.schemas.interview import (
     ApplicantInterviewResponse,
@@ -32,6 +33,7 @@ from app.schemas.interview import (
     InterviewerSummary,
 )
 from app.services.ai_analysis import AIProviderError, AIProviderUnavailable, _parse_json_response, provider
+from app.services.notifications import create_notification
 
 
 class GeneratedQuestion(BaseModel):
@@ -112,6 +114,29 @@ def create_interview(db: Session, application_id: int, data: InterviewCreate, cr
             application.status = ApplicationStatus.INTERVIEW_SCHEDULED
             db.add(ApplicationActivity(application_id=application.id, actor_id=created_by_id, event_type="status_changed", from_status=previous, to_status=application.status))
         db.add(interview)
+        db.flush()
+        create_notification(
+            db,
+            user_id=application.applicant_id,
+            type=NotificationType.INTERVIEW_SCHEDULED,
+            title="Interview scheduled",
+            message=f"Your interview for {application.job.title} has been scheduled.",
+            related_application_id=application.id,
+            related_interview_id=interview.id,
+            related_job_id=application.job_id,
+        )
+        for user_id in data.interviewer_ids:
+            if user_id != created_by_id:
+                create_notification(
+                    db,
+                    user_id=user_id,
+                    type=NotificationType.INTERVIEW_ASSIGNED,
+                    title="Interview assigned",
+                    message=f"You have been assigned to interview {application.applicant.first_name} {application.applicant.last_name} for {application.job.title}.",
+                    related_application_id=application.id,
+                    related_interview_id=interview.id,
+                    related_job_id=application.job_id,
+                )
         db.commit()
         loaded = _get_loaded_interview(db, interview.id)
         return _to_detail(loaded) if loaded else None
@@ -132,6 +157,8 @@ def update_interview(db: Session, interview_id: int, data: InterviewUpdate, acto
     values = data.model_dump(exclude_unset=True)
     interviewer_ids = values.pop("interviewer_ids", None)
     next_status = values.get("status")
+    previous_scheduled_at = interview.scheduled_at
+    previous_status = interview.status
     if interview.status == InterviewStatus.COMPLETED and next_status == InterviewStatus.CANCELLED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Completed interviews cannot be cancelled")
     if next_status == InterviewStatus.COMPLETED and interview.application.status == ApplicationStatus.INTERVIEW_SCHEDULED:
@@ -145,6 +172,54 @@ def update_interview(db: Session, interview_id: int, data: InterviewUpdate, acto
         interview.interviewers = [InterviewInterviewer(interviewer_id=user_id) for user_id in interviewer_ids]
     try:
         db.add(interview)
+        db.flush()
+        assigned_ids = {assignment.interviewer_id for assignment in interview.interviewers}
+        if next_status == InterviewStatus.CANCELLED and previous_status != InterviewStatus.CANCELLED:
+            create_notification(
+                db,
+                user_id=interview.application.applicant_id,
+                type=NotificationType.INTERVIEW_CANCELLED,
+                title="Interview cancelled",
+                message=f"Your interview for {interview.application.job.title} was cancelled.",
+                related_application_id=interview.application_id,
+                related_interview_id=interview.id,
+                related_job_id=interview.application.job_id,
+            )
+            for user_id in assigned_ids:
+                if user_id != actor_id:
+                    create_notification(
+                        db,
+                        user_id=user_id,
+                        type=NotificationType.INTERVIEW_CANCELLED,
+                        title="Interview cancelled",
+                        message=f"The interview for {interview.application.applicant.first_name} {interview.application.applicant.last_name} was cancelled.",
+                        related_application_id=interview.application_id,
+                        related_interview_id=interview.id,
+                        related_job_id=interview.application.job_id,
+                    )
+        elif "scheduled_at" in values and interview.scheduled_at != previous_scheduled_at:
+            create_notification(
+                db,
+                user_id=interview.application.applicant_id,
+                type=NotificationType.INTERVIEW_RESCHEDULED,
+                title="Interview rescheduled",
+                message=f"Your interview for {interview.application.job.title} was rescheduled.",
+                related_application_id=interview.application_id,
+                related_interview_id=interview.id,
+                related_job_id=interview.application.job_id,
+            )
+            for user_id in assigned_ids:
+                if user_id != actor_id:
+                    create_notification(
+                        db,
+                        user_id=user_id,
+                        type=NotificationType.INTERVIEW_RESCHEDULED,
+                        title="Interview rescheduled",
+                        message=f"The interview for {interview.application.applicant.first_name} {interview.application.applicant.last_name} was rescheduled.",
+                        related_application_id=interview.application_id,
+                        related_interview_id=interview.id,
+                        related_job_id=interview.application.job_id,
+                    )
         db.commit()
         loaded = _get_loaded_interview(db, interview_id)
         return _to_detail(loaded) if loaded else None
@@ -381,3 +456,4 @@ def _to_evaluation(evaluation: InterviewEvaluation) -> InterviewEvaluationRespon
         submitted_at=evaluation.submitted_at,
         updated_at=evaluation.updated_at,
     )
+

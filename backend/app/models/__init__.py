@@ -12,6 +12,7 @@ from app.models.interview import (
     InterviewStatus,
     InterviewType,
 )
+from app.models.notification import Notification, NotificationType
 from app.models.job import (
     ApplicationQuestion,
     EmploymentType,
@@ -49,9 +50,12 @@ __all__ = [
     "Job",
     "JobSkill",
     "JobStatus",
+    "Notification",
+    "NotificationType",
     "SkillType",
     "User",
     "UserRole",
     "WorkplaceType",
 ]
+
 

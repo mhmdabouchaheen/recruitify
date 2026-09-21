@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.applicant import CV
 from app.models.application import Application, ApplicationActivity, ApplicationAnswer, ApplicationStatus
 from app.models.job import ApplicationQuestion, Job, JobStatus
+from app.models.notification import NotificationType
 from app.schemas.application import ApplicationCreate
+from app.services.notifications import notify_hr_admins
 
 TERMINAL_WITHDRAW_BLOCKED = {
     ApplicationStatus.SELECTED,
@@ -110,4 +112,5 @@ def withdraw_application(db: Session, applicant_id: int, application_id: int) ->
     except SQLAlchemyError:
         db.rollback()
         raise
+
 

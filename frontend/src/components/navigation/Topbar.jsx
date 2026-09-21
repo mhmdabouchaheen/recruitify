@@ -1,4 +1,5 @@
 import { Bell, Menu, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Avatar, IconButton } from '../ui'
 import { useAuth } from '../../context/useAuth'
 import {
@@ -7,7 +8,7 @@ import {
   TooltipTrigger,
 } from '../ui/tooltip'
 
-export function Topbar({ onMenu }) {
+export function Topbar({ onMenu, unreadNotifications = 0 }) {
   const { user } = useAuth()
   const name = user ? `${user.first_name} ${user.last_name}` : 'Recruitify user'
 
@@ -28,9 +29,9 @@ export function Topbar({ onMenu }) {
         <kbd>⌘ K</kbd>
       </label>
       <Tooltip>
-        <TooltipTrigger render={<IconButton label="Notifications" />}>
+        <TooltipTrigger render={<Link to="/notifications" className="icon-button notification-link" aria-label="Notifications" />}>
           <Bell size={17} />
-          <span className="notification-dot" />
+          {unreadNotifications > 0 && <span className="notification-count-badge">{unreadNotifications}</span>}
         </TooltipTrigger>
         <TooltipContent>Notifications</TooltipContent>
       </Tooltip>
