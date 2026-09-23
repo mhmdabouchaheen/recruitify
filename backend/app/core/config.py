@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     contract_company_name: str = "Recruitify"
     smtp_email: str | None = None
     smtp_app_password: str | None = None
+    cv_storage_backend: str = "local"
+    cv_storage_bucket: str | None = None
+    cv_storage_prefix: str = "cvs"
+    aws_endpoint_url_s3: str | None = None
+    aws_region: str | None = None
     cors_allowed_origins: str = (
         "http://127.0.0.1:5173,"
         "http://127.0.0.1:5174,"

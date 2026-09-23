@@ -1,9 +1,9 @@
-from pathlib import Path
+from io import BytesIO
 import re
 
 from pypdf import PdfReader
 
-from app.services.applicants import UPLOAD_ROOT
+from app.services.cv_storage import CVStorageError, read_cv_bytes
 
 MAX_EXTRACTED_TEXT_CHARS = 60000
 
@@ -13,13 +13,15 @@ class CVExtractionError(ValueError):
 
 
 def extract_pdf_text(stored_filename: str) -> str:
-    safe_name = Path(stored_filename).name
-    path = UPLOAD_ROOT / safe_name
-    if not path.exists() or not path.is_file() or path.parent != UPLOAD_ROOT:
-        raise CVExtractionError("Stored CV file could not be found")
+    try:
+        content = read_cv_bytes(stored_filename)
+    except FileNotFoundError as exc:
+        raise CVExtractionError("Stored CV file could not be found") from exc
+    except CVStorageError as exc:
+        raise CVExtractionError("Stored CV file could not be read") from exc
 
     try:
-        reader = PdfReader(str(path))
+        reader = PdfReader(BytesIO(content))
         pages = [page.extract_text() or "" for page in reader.pages]
     except Exception as exc:
         raise CVExtractionError("CV PDF could not be read") from exc

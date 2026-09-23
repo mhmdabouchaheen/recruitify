@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 from app.models.applicant import ApplicantProfile, CV
 from app.models.user import User
 from app.schemas.applicant import ApplicantProfileResponse, ApplicantProfileUpdate
+from app.services.cv_storage import delete_cv_file, save_cv_bytes
 
 MAX_CV_SIZE_BYTES = 5 * 1024 * 1024
 PDF_SIGNATURE = b"%PDF-"
-UPLOAD_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "cvs"
 
 
 def _profile_response(user: User, profile: ApplicantProfile | None) -> ApplicantProfileResponse:
@@ -91,10 +91,8 @@ def create_cv_record(
     content_type: str,
     content: bytes,
 ) -> CV:
-    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     stored_filename = _stored_filename(user_id, original_filename)
-    destination = UPLOAD_ROOT / stored_filename
-    destination.write_bytes(content)
+    save_cv_bytes(stored_filename, content, content_type or "application/pdf")
 
     existing_count = db.scalar(select(CV).where(CV.user_id == user_id).limit(1))
     cv = CV(
@@ -113,8 +111,7 @@ def create_cv_record(
         return cv
     except SQLAlchemyError:
         db.rollback()
-        if destination.exists():
-            destination.unlink()
+        delete_cv_file(stored_filename)
         raise
 
 
@@ -124,7 +121,7 @@ def delete_cv(db: Session, user_id: int, cv_id: int) -> bool:
         return False
 
     was_primary = cv.is_primary
-    path = UPLOAD_ROOT / cv.stored_filename
+    stored_filename = cv.stored_filename
 
     try:
         db.delete(cv)
@@ -138,8 +135,7 @@ def delete_cv(db: Session, user_id: int, cv_id: int) -> bool:
         db.rollback()
         raise
 
-    if path.exists() and path.is_file() and path.parent == UPLOAD_ROOT:
-        path.unlink()
+    delete_cv_file(stored_filename)
     return True
 
 
