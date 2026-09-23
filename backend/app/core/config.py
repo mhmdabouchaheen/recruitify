@@ -1,6 +1,5 @@
 from functools import lru_cache
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,21 +14,16 @@ class Settings(BaseSettings):
     contract_company_name: str = "Recruitify"
     smtp_email: str | None = None
     smtp_app_password: str | None = None
-    cors_allowed_origins: list[str] = [
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://localhost:5173",
-        "http://localhost:5174",
-    ]
+    cors_allowed_origins: str = (
+        "http://127.0.0.1:5173,"
+        "http://127.0.0.1:5174,"
+        "http://localhost:5173,"
+        "http://localhost:5174"
+    )
 
-    @field_validator("cors_allowed_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value):
-        if value is None or value == "":
-            return cls.model_fields["cors_allowed_origins"].default
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+    @property
+    def cors_allowed_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
     model_config = SettingsConfigDict(
         env_file=(".env", "backend/.env"),
