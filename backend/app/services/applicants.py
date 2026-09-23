@@ -1,12 +1,13 @@
 ﻿from pathlib import Path
 from uuid import uuid4
 
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.applicant import ApplicantProfile, CV
+from app.models.application import Application
 from app.models.user import User
 from app.schemas.applicant import ApplicantProfileResponse, ApplicantProfileUpdate
 from app.services.cv_storage import delete_cv_file, save_cv_bytes
@@ -131,12 +132,64 @@ def delete_cv(db: Session, user_id: int, cv_id: int) -> bool:
             if next_cv is not None:
                 next_cv.is_primary = True
         db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This CV is used by an application. Replace it in your applications before deleting it.",
+        ) from exc
     except SQLAlchemyError:
         db.rollback()
         raise
 
     delete_cv_file(stored_filename)
     return True
+
+
+def replace_cv_in_applications(
+    db: Session,
+    user_id: int,
+    cv_id: int,
+    replacement_cv_id: int,
+) -> dict[str, object] | None:
+    original_cv = db.get(CV, cv_id)
+    replacement_cv = db.get(CV, replacement_cv_id)
+    if original_cv is None or original_cv.user_id != user_id:
+        return None
+    if replacement_cv is None or replacement_cv.user_id != user_id:
+        return None
+    if cv_id == replacement_cv_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Choose a different CV as the replacement.",
+        )
+
+    applications = list(
+        db.scalars(
+            select(Application).where(
+                Application.applicant_id == user_id,
+                Application.cv_id == cv_id,
+            )
+        ).all()
+    )
+
+    try:
+        for application in applications:
+            application.cv_id = replacement_cv_id
+        if original_cv.is_primary:
+            original_cv.is_primary = False
+            replacement_cv.is_primary = True
+        db.commit()
+        db.refresh(replacement_cv)
+        return {
+            "from_cv_id": cv_id,
+            "replacement_cv_id": replacement_cv_id,
+            "updated_applications": len(applications),
+            "replacement_cv": replacement_cv,
+        }
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 def set_primary_cv(db: Session, user_id: int, cv_id: int) -> CV | None:

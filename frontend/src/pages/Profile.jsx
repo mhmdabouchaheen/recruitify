@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
-import { BriefcaseBusiness, CheckCircle2, FileText, Trash2, Upload } from 'lucide-react'
+import { BriefcaseBusiness, CheckCircle2, FileText, RefreshCw, Trash2, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import {
   deleteApplicantCv,
   getApplicantCvs,
   getApplicantProfile,
+  replaceApplicantCvReferences,
   setPrimaryApplicantCv,
   updateApplicantProfile,
   uploadApplicantCv,
@@ -36,6 +37,9 @@ export default function Profile() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [replaceTarget, setReplaceTarget] = useState(null)
+  const [replacementCvId, setReplacementCvId] = useState('')
+  const [replacing, setReplacing] = useState(false)
   const fileInputRef = useRef(null)
 
   const isApplicant = user?.role === 'applicant'
@@ -147,6 +151,33 @@ export default function Profile() {
     }
   }
 
+  const openReplacementDialog = (cv) => {
+    const fallback = cvs.find((item) => item.id !== cv.id)
+    setReplaceTarget(cv)
+    setReplacementCvId(fallback ? String(fallback.id) : '')
+    setError('')
+    setMessage('')
+  }
+
+  const confirmReplacement = async () => {
+    if (!replaceTarget || !replacementCvId || replacing) return
+    setReplacing(true)
+    setError('')
+    setMessage('')
+    try {
+      const result = await replaceApplicantCvReferences(replaceTarget.id, Number(replacementCvId))
+      const nextCvs = await getApplicantCvs()
+      setCvs(nextCvs)
+      setReplaceTarget(null)
+      setReplacementCvId('')
+      setMessage(`${result.updated_applications} application${result.updated_applications === 1 ? '' : 's'} updated to use the replacement CV.`)
+    } catch (requestError) {
+      setError(requestError.message || 'Applications could not be updated to use the replacement CV.')
+    } finally {
+      setReplacing(false)
+    }
+  }
+
   return <main className="public-page">
     <PublicHeader isAuthenticated accountPath={accountPath} />
     <ProfileShell>
@@ -200,6 +231,7 @@ export default function Profile() {
             <span className="cv-icon"><FileText size={18} /></span>
             <div><strong>{cv.original_filename}</strong><span>{formatFileSize(cv.file_size)} · Uploaded {formatDate(cv.uploaded_at)}</span></div>
             {cv.is_primary ? <span className="cv-primary">Primary</span> : <Button variant="secondary" onClick={() => makePrimary(cv)}>Set as Primary</Button>}
+            {cvs.length > 1 && <Button variant="secondary" icon={RefreshCw} onClick={() => openReplacementDialog(cv)}>Replace in applications</Button>}
             <Button variant="ghost" icon={Trash2} onClick={() => setDeleteTarget(cv)}>Delete</Button>
           </article>)}
         </div>}
@@ -208,6 +240,17 @@ export default function Profile() {
 
     <Modal open={Boolean(deleteTarget)} title="Delete CV?" onClose={() => setDeleteTarget(null)} footer={<><Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancel</Button><Button variant="danger" onClick={confirmDelete}>Delete CV</Button></>}>
       <p className="dialog-copy">This removes {deleteTarget?.original_filename} from your profile. You can upload it again later if needed.</p>
+    </Modal>
+
+    <Modal open={Boolean(replaceTarget)} title="Replace CV in applications" onClose={() => setReplaceTarget(null)} footer={<><Button variant="secondary" onClick={() => setReplaceTarget(null)} disabled={replacing}>Cancel</Button><Button onClick={confirmReplacement} disabled={!replacementCvId || replacing}>{replacing ? 'Updating...' : 'Update applications'}</Button></>}>
+      <div className="dialog-stack">
+        <p className="dialog-copy">Choose another CV to use for applications that currently reference {replaceTarget?.original_filename}. This keeps your submitted applications intact.</p>
+        <Field label="Replacement CV">
+          <select value={replacementCvId} onChange={(event) => setReplacementCvId(event.target.value)}>
+            {cvs.filter((cv) => cv.id !== replaceTarget?.id).map((cv) => <option key={cv.id} value={cv.id}>{cv.original_filename}</option>)}
+          </select>
+        </Field>
+      </div>
     </Modal>
   </main>
 }

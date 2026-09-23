@@ -31,3 +31,10 @@ export async function deleteApplicantCv(cvId) {
 export async function setPrimaryApplicantCv(cvId) {
   return apiRequest(`/applicant/cvs/${cvId}/primary`, { method: 'PATCH' })
 }
+
+export async function replaceApplicantCvReferences(cvId, replacementCvId) {
+  return apiRequest(`/applicant/cvs/${cvId}/replace`, {
+    method: 'PATCH',
+    body: { replacement_cv_id: replacementCvId },
+  })
+}

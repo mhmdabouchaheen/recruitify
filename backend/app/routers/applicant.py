@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.dependencies.auth import require_roles
 from app.models.user import User, UserRole
-from app.schemas.applicant import ApplicantProfileResponse, ApplicantProfileUpdate, CVResponse
+from app.schemas.applicant import ApplicantProfileResponse, ApplicantProfileUpdate, CVReplacementRequest, CVReplacementResponse, CVResponse
 from app.services.applicants import (
     create_cv_record,
     delete_cv,
     get_applicant_profile,
     list_cvs,
     read_valid_pdf,
+    replace_cv_in_applications,
     set_primary_cv,
     update_applicant_profile,
 )
@@ -80,6 +81,24 @@ def remove_cv(
     if not delete_cv(db, current_user.id, cv_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
     return None
+
+
+@router.patch("/cvs/{cv_id}/replace", response_model=CVReplacementResponse)
+def replace_cv_references(
+    cv_id: int,
+    replacement_in: CVReplacementRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_applicant),
+):
+    result = replace_cv_in_applications(
+        db,
+        user_id=current_user.id,
+        cv_id=cv_id,
+        replacement_cv_id=replacement_in.replacement_cv_id,
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    return result
 
 
 @router.patch("/cvs/{cv_id}/primary", response_model=CVResponse)

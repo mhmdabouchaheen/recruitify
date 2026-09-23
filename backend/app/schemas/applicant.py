@@ -57,3 +57,16 @@ class CVResponse(BaseModel):
     uploaded_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class CVReplacementRequest(BaseModel):
+    replacement_cv_id: int = Field(gt=0)
+
+
+class CVReplacementResponse(BaseModel):
+    from_cv_id: int
+    replacement_cv_id: int
+    updated_applications: int
+    replacement_cv: CVResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
