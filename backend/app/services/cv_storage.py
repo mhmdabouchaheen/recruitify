@@ -22,6 +22,7 @@ def _object_key(stored_filename: str) -> str:
 def _s3_client():
     try:
         import boto3
+        from botocore.config import Config
     except ImportError as exc:
         raise CVStorageError("boto3 is required for S3 CV storage") from exc
 
@@ -30,6 +31,8 @@ def _s3_client():
         kwargs["endpoint_url"] = settings.aws_endpoint_url_s3
     if settings.aws_region:
         kwargs["region_name"] = settings.aws_region
+    if settings.cv_storage_force_path_style:
+        kwargs["config"] = Config(signature_version="s3v4", s3={"addressing_style": "path"})
     return boto3.client("s3", **kwargs)
 
 
@@ -75,9 +78,11 @@ def delete_cv_file(stored_filename: str) -> None:
     if _backend() == "s3":
         try:
             _s3_client().delete_object(Bucket=_bucket(), Key=_object_key(stored_filename))
-        except Exception:
-            # Deleting a missing object should not break application state.
-            return
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code in {"NoSuchKey", "404", "NotFound"}:
+                return
+            raise CVStorageError("Stored CV file could not be deleted from object storage") from exc
         return
 
     safe_name = Path(stored_filename).name

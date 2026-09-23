@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     cv_storage_backend: str = "local"
     cv_storage_bucket: str | None = None
     cv_storage_prefix: str = "cvs"
+    cv_storage_force_path_style: bool = True
     aws_endpoint_url_s3: str | None = None
     aws_region: str | None = None
     cors_allowed_origins: str = (
