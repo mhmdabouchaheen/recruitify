@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3, Bell, BriefcaseBusiness, Building2, CalendarDays,
-  KanbanSquare, LayoutDashboard, LogOut, Settings, UsersRound,
+  KanbanSquare, LayoutDashboard, LogOut, Settings, ShieldCheck, UsersRound,
 } from 'lucide-react'
 import { Avatar } from '../ui'
 import { useAuth } from '../../context/useAuth'
@@ -15,6 +15,7 @@ const nav = [
   [CalendarDays, 'Interviews', '/interviews'],
   [BarChart3, 'Reports', '/reports', null, ['hr', 'admin']],
   [Bell, 'Notifications', '/notifications'],
+  [ShieldCheck, 'User Management', '/admin/users', null, ['admin']],
 ]
 
 export function Sidebar({ open, onNavigate, unreadNotifications = 0 }) {

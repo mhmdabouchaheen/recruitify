@@ -30,6 +30,7 @@ const JobFormPage = lazy(() => import('./pages/JobFormPage'))
 const JobDetails = lazy(() => import('./pages/JobDetails'))
 const JobPreview = lazy(() => import('./pages/JobPreview'))
 const Notifications = lazy(() => import('./pages/Notifications'))
+const AdminUsers = lazy(() => import('./pages/AdminUsers'))
 
 export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/applications" element={<ProtectedRoute allowedRoles={['applicant']}><Applications /></ProtectedRoute>} />
             <Route path="/applications/:applicationId" element={<ProtectedRoute allowedRoles={['applicant']}><ApplicationDetails /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsSurface mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen} /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}><AdminUsers /></AppShell></ProtectedRoute>} />
             <Route path="/*" element={
               <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
