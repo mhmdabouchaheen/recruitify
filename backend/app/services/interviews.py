@@ -34,6 +34,7 @@ from app.schemas.interview import (
 )
 from app.services.ai_analysis import AIProviderError, AIProviderUnavailable, _parse_json_response, provider
 from app.services.notifications import create_notification
+from app.services.email_notifications import send_interview_rescheduled_email, send_interview_scheduled_email
 
 
 class GeneratedQuestion(BaseModel):
@@ -139,6 +140,8 @@ def create_interview(db: Session, application_id: int, data: InterviewCreate, cr
                 )
         db.commit()
         loaded = _get_loaded_interview(db, interview.id)
+        if loaded:
+            send_interview_scheduled_email(loaded)
         return _to_detail(loaded) if loaded else None
     except SQLAlchemyError:
         db.rollback()
@@ -222,6 +225,8 @@ def update_interview(db: Session, interview_id: int, data: InterviewUpdate, acto
                     )
         db.commit()
         loaded = _get_loaded_interview(db, interview_id)
+        if loaded and "scheduled_at" in values and loaded.scheduled_at != previous_scheduled_at:
+            send_interview_rescheduled_email(loaded)
         return _to_detail(loaded) if loaded else None
     except SQLAlchemyError:
         db.rollback()

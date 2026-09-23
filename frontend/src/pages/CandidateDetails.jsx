@@ -96,12 +96,25 @@ export default function CandidateDetails() {
 
   const changeStatus = async (event) => {
     const nextStatus = event.target.value
-    if (finalStatuses.has(nextStatus) && !window.confirm(`Move this candidate to ${nextStatus}?`)) return
+    let rejectionFeedback = null
+    if (nextStatus === 'Rejected') {
+      rejectionFeedback = window.prompt('Enter the applicant-facing rejection feedback/reason. This exact text will be emailed to the applicant.')
+      if (!rejectionFeedback || !rejectionFeedback.trim()) {
+        setStatusMessage('Rejection feedback is required before rejecting a candidate.')
+        setStatusValue(formatApplicationStatus(application.status))
+        return
+      }
+      rejectionFeedback = rejectionFeedback.trim()
+    }
+    if (finalStatuses.has(nextStatus) && !window.confirm(`Move this candidate to ${nextStatus}?`)) {
+      setStatusValue(formatApplicationStatus(application.status))
+      return
+    }
     setStatusValue(nextStatus)
     setSavingStatus(true)
     setStatusMessage('')
     try {
-      const updated = await updateHrApplicationStatus(applicationId, nextStatus)
+      const updated = await updateHrApplicationStatus(applicationId, nextStatus, { rejectionFeedback })
       setApplication(updated)
       setStatusValue(formatApplicationStatus(updated.status))
       setStatusMessage('Status updated.')

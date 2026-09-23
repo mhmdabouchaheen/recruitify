@@ -11,6 +11,7 @@ from app.models.job import ApplicationQuestion, Job, JobStatus
 from app.models.notification import NotificationType
 from app.schemas.application import ApplicationCreate
 from app.services.notifications import notify_hr_admins
+from app.services.email_notifications import send_application_submitted_email
 
 TERMINAL_WITHDRAW_BLOCKED = {
     ApplicationStatus.SELECTED,
@@ -23,6 +24,7 @@ def _load_options():
     return (
         selectinload(Application.job).selectinload(Job.skills),
         selectinload(Application.job).selectinload(Job.application_questions),
+        selectinload(Application.applicant),
         selectinload(Application.cv),
         selectinload(Application.answers).selectinload(ApplicationAnswer.question),
     )
@@ -87,7 +89,9 @@ def create_application(db: Session, applicant_id: int, application_in: Applicati
         db.flush()
         db.add(ApplicationActivity(application_id=application.id, actor_id=applicant_id, event_type="application_submitted", to_status=ApplicationStatus.APPLIED))
         db.commit()
-        return get_application(db, applicant_id, application.id) or application
+        loaded = get_application(db, applicant_id, application.id) or application
+        send_application_submitted_email(loaded)
+        return loaded
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already applied to this job") from exc

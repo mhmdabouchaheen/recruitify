@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 from sqlalchemy import case, func, select
@@ -15,6 +16,9 @@ from app.schemas.dashboard import (
     DashboardInterviewItem,
     DashboardJobItem,
     DashboardMetrics,
+    DashboardRecentApplicationItem,
+    DashboardStatusItem,
+    DashboardTimeSeriesItem,
     DashboardOutcomes,
     DashboardPipeline,
     HRDashboardResponse,
@@ -71,6 +75,9 @@ def get_hr_dashboard(db: Session) -> HRDashboardResponse:
         recent_activity=_recent_activity(db),
         recent_jobs=_recent_jobs(db),
         needs_attention=_needs_attention(db),
+        applications_over_time=_applications_over_time(db),
+        applications_by_status=_applications_by_status(db, total_candidates),
+        recent_applications=_recent_applications(db),
     )
 
 
@@ -183,3 +190,89 @@ def _activity_description(activity: ApplicationActivity) -> str:
 
 def _format_status(value: str) -> str:
     return value.replace("_", " ").title()
+
+
+
+def _period_key(value: datetime) -> str:
+    return value.strftime("%b %d")
+
+
+def _applications_over_time(db: Session) -> list[DashboardTimeSeriesItem]:
+    applications = list(db.scalars(
+        select(Application).order_by(Application.submitted_at.asc(), Application.id.asc())
+    ).all())
+    contracts = list(db.scalars(
+        select(Contract).where(Contract.status == ContractStatus.ACCEPTED)
+    ).all())
+    selected_ids = {
+        application.id
+        for application in applications
+        if application.status == ApplicationStatus.SELECTED
+    }
+    periods: dict[str, dict[str, int | str]] = defaultdict(
+        lambda: {"period": "", "applications": 0, "hires": 0}
+    )
+
+    for application in applications:
+        key = _period_key(application.submitted_at)
+        periods[key]["period"] = key
+        periods[key]["applications"] = int(periods[key]["applications"]) + 1
+
+    for contract in contracts:
+        if contract.application_id not in selected_ids:
+            continue
+        timestamp = contract.responded_at or contract.updated_at or contract.created_at
+        key = _period_key(timestamp)
+        periods[key]["period"] = key
+        periods[key]["hires"] = int(periods[key]["hires"]) + 1
+
+    def sort_key(item: dict[str, int | str]) -> datetime:
+        return datetime.strptime(str(item["period"]), "%b %d")
+
+    return [
+        DashboardTimeSeriesItem(**item)
+        for item in sorted(periods.values(), key=sort_key)
+    ]
+
+
+def _applications_by_status(db: Session, total: int) -> list[DashboardStatusItem]:
+    counts = _pipeline_counts(db)
+    ordered_statuses = [
+        (ApplicationStatus.APPLIED.value, "Applied"),
+        (ApplicationStatus.UNDER_REVIEW.value, "Under Review"),
+        (ApplicationStatus.SHORTLISTED.value, "Shortlisted"),
+        (ApplicationStatus.INTERVIEW_SCHEDULED.value, "Interview Scheduled"),
+        (ApplicationStatus.INTERVIEW_COMPLETED.value, "Interview Completed"),
+        (ApplicationStatus.SELECTED.value, "Selected"),
+        (ApplicationStatus.REJECTED.value, "Rejected"),
+    ]
+    return [
+        DashboardStatusItem(
+            status=status,
+            label=label,
+            count=counts.get(status, 0),
+            percentage=round((counts.get(status, 0) / total) * 100, 1) if total else 0,
+        )
+        for status, label in ordered_statuses
+        if counts.get(status, 0)
+    ]
+
+
+def _recent_applications(db: Session) -> list[DashboardRecentApplicationItem]:
+    applications = list(db.scalars(
+        select(Application)
+        .options(selectinload(Application.applicant), selectinload(Application.job))
+        .order_by(Application.submitted_at.desc(), Application.id.desc())
+        .limit(5)
+    ).all())
+    return [
+        DashboardRecentApplicationItem(
+            id=application.id,
+            candidate_name=f"{application.applicant.first_name} {application.applicant.last_name}",
+            candidate_email=application.applicant.email,
+            job_title=application.job.title,
+            status=application.status.value,
+            submitted_at=application.submitted_at,
+        )
+        for application in applications
+    ]

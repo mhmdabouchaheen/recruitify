@@ -64,6 +64,28 @@ class DashboardAttentionItem(BaseModel):
     link: str
 
 
+class DashboardTimeSeriesItem(BaseModel):
+    period: str
+    applications: int
+    hires: int
+
+
+class DashboardStatusItem(BaseModel):
+    status: str
+    label: str
+    count: int
+    percentage: float
+
+
+class DashboardRecentApplicationItem(BaseModel):
+    id: int
+    candidate_name: str
+    candidate_email: str
+    job_title: str
+    status: str
+    submitted_at: datetime
+
+
 class HRDashboardResponse(BaseModel):
     metrics: DashboardMetrics
     pipeline: DashboardPipeline
@@ -72,3 +94,6 @@ class HRDashboardResponse(BaseModel):
     recent_activity: list[DashboardActivityItem]
     recent_jobs: list[DashboardJobItem]
     needs_attention: list[DashboardAttentionItem]
+    applications_over_time: list[DashboardTimeSeriesItem]
+    applications_by_status: list[DashboardStatusItem]
+    recent_applications: list[DashboardRecentApplicationItem]

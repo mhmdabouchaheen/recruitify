@@ -63,7 +63,7 @@ def update_application_status_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_hr_or_admin),
 ):
-    application = update_hr_application_status(db, application_id, status_in.status, current_user.id)
+    application = update_hr_application_status(db, application_id, status_in.status, current_user.id, status_in.rejection_feedback)
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
     return application

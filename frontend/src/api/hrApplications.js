@@ -44,10 +44,14 @@ export async function getHrApplication(applicationId) {
   return apiRequest(`/hr/applications/${applicationId}`)
 }
 
-export async function updateHrApplicationStatus(applicationId, status) {
+export async function updateHrApplicationStatus(applicationId, status, options = {}) {
+  const nextStatus = statusToApi[status] || status
   return apiRequest(`/hr/applications/${applicationId}/status`, {
     method: 'PATCH',
-    body: { status: statusToApi[status] || status },
+    body: {
+      status: nextStatus,
+      ...(nextStatus === 'rejected' ? { rejection_feedback: options.rejectionFeedback } : {}),
+    },
   })
 }
 

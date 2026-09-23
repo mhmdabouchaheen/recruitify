@@ -11,6 +11,7 @@ from app.models.ai_analysis import ApplicationMatch
 from app.models.contract import Contract
 from app.models.user import User
 from app.services.notifications import create_notification, format_status
+from app.services.email_notifications import send_candidate_rejected_email, send_candidate_selected_email
 from app.schemas.hr_application import (
     HRApplicantProfileResponse,
     HRApplicantSummary,
@@ -87,11 +88,13 @@ def get_hr_application_detail(db: Session, application_id: int) -> HRApplication
     return _to_detail(application)
 
 
-def update_hr_application_status(db: Session, application_id: int, next_status: ApplicationStatus, actor_id: int) -> HRApplicationDetail | None:
+def update_hr_application_status(db: Session, application_id: int, next_status: ApplicationStatus, actor_id: int, rejection_feedback: str | None = None) -> HRApplicationDetail | None:
     if next_status == ApplicationStatus.WITHDRAWN:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="HR cannot set applications to withdrawn")
     if next_status not in HR_ALLOWED_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid application status")
+    if next_status == ApplicationStatus.REJECTED and not rejection_feedback:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Applicant-facing rejection feedback is required")
 
     application = get_hr_application(db, application_id)
     if application is None:
@@ -102,11 +105,18 @@ def update_hr_application_status(db: Session, application_id: int, next_status: 
     try:
         previous_status = application.status
         application.status = next_status
+        if next_status == ApplicationStatus.REJECTED:
+            application.rejection_feedback = rejection_feedback
         db.add(application)
         if previous_status != next_status:
             db.add(ApplicationActivity(application_id=application.id, actor_id=actor_id, event_type="status_changed", from_status=previous_status, to_status=next_status))
         db.commit()
         updated = get_hr_application(db, application_id)
+        if updated and previous_status != next_status:
+            if next_status == ApplicationStatus.SELECTED:
+                send_candidate_selected_email(updated)
+            elif next_status == ApplicationStatus.REJECTED and updated.rejection_feedback:
+                send_candidate_rejected_email(updated, updated.rejection_feedback)
         return _to_detail(updated) if updated else None
     except SQLAlchemyError:
         db.rollback()
@@ -190,6 +200,7 @@ def _to_detail(application: Application) -> HRApplicationDetail:
         job=application.job,
         cv=application.cv,
         answers=application.answers,
+        rejection_feedback=application.rejection_feedback,
     )
 
 

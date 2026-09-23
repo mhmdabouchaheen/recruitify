@@ -50,10 +50,20 @@ class HRApplicationDetail(BaseModel):
     job: JobResponse
     cv: CVResponse
     answers: list[ApplicationAnswerResponse]
+    rejection_feedback: str | None = None
 
 
 class HRApplicationStatusUpdate(BaseModel):
     status: ApplicationStatus
+    rejection_feedback: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("rejection_feedback")
+    @classmethod
+    def strip_rejection_feedback(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
 
 class HRApplicationNoteCreate(BaseModel):
     content: str = Field(min_length=1, max_length=5000)

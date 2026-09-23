@@ -91,10 +91,19 @@ export default function Pipeline() {
 
   const moveCandidate = async (application, nextStatus) => {
     if (blockedDirectTargets.has(nextStatus)) return
+    let rejectionFeedback = null
+    if (nextStatus === 'rejected') {
+      rejectionFeedback = window.prompt('Enter the applicant-facing rejection feedback/reason. This exact text will be emailed to the applicant.')
+      if (!rejectionFeedback || !rejectionFeedback.trim()) {
+        setMessage({ type: 'error', text: 'Rejection feedback is required before rejecting a candidate.' })
+        return
+      }
+      rejectionFeedback = rejectionFeedback.trim()
+    }
     setUpdatingId(application.id)
     setMessage({ type: '', text: '' })
     try {
-      const updated = await updateHrApplicationStatus(application.id, nextStatus)
+      const updated = await updateHrApplicationStatus(application.id, nextStatus, { rejectionFeedback })
       setResult((current) => ({
         ...current,
         applications: current.applications.map((item) => item.id === application.id ? { ...item, status: updated.status } : item),
@@ -131,14 +140,26 @@ export default function Pipeline() {
     {!result.loading && !result.error && result.applications.length === 0 && <PipelineState title="No applications in the recruitment pipeline yet." description="Submitted applications will appear here when applicants apply to jobs." />}
     {!result.loading && !result.error && result.applications.length > 0 && filtered.length === 0 && <PipelineState title="No candidates match your filters" description="Try changing the search, job vacancy, or status view." />}
 
-    {!result.loading && !result.error && filtered.length > 0 && filters.status !== 'outcomes' && <div className="pipeline-board" aria-label="Recruitment pipeline board">{activeColumns.map(([status, label]) => <PipelineColumn key={status} status={status} label={label} applications={grouped.get(status) || []} updatingId={updatingId} onMove={moveCandidate} openActionId={openActionId} setOpenActionId={setOpenActionId} />)}</div>}
+    {!result.loading && !result.error && filtered.length > 0 && filters.status !== 'outcomes' && <><div className="pipeline-board" aria-label="Recruitment pipeline board">{activeColumns.map(([status, label]) => <PipelineColumn key={status} status={status} label={label} applications={grouped.get(status) || []} updatingId={updatingId} onMove={moveCandidate} openActionId={openActionId} setOpenActionId={setOpenActionId} />)}</div><PipelineOverview grouped={grouped} /></>}
     {!result.loading && !result.error && filters.status === 'outcomes' && <section className="panel pipeline-outcomes"><div className="panel-header"><div><h2 className="panel-title">Rejected / Withdrawn</h2><p className="panel-subtitle">Outcome candidates are kept separate from the active board.</p></div></div><div className="pipeline-outcome-grid">{outcomes.length ? outcomes.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={moveCandidate} open={openActionId === application.id} setOpenActionId={setOpenActionId} />) : <p className="pipeline-empty">No rejected or withdrawn candidates match this view.</p>}</div></section>}
   </section>
 }
 
 function PipelineColumn({ status, label, applications, updatingId, onMove, openActionId, setOpenActionId }) {
+  const [expanded, setExpanded] = useState(false)
   const busy = applications.some((application) => updatingId === application.id)
-  return <section className={`pipeline-column ${busy ? 'is-updating' : ''}`} data-status={status}><header><span>{label}</span><strong>{applications.length}</strong></header><div className="pipeline-column-body">{applications.length ? applications.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={onMove} open={openActionId === application.id} setOpenActionId={setOpenActionId} />) : <div className="pipeline-empty"><strong>No candidates</strong><span>Candidates moved to this stage will appear here.</span></div>}</div></section>
+  const visibleApplications = expanded ? applications : applications.slice(0, 3)
+  const hiddenCount = applications.length - visibleApplications.length
+  return <section className={`pipeline-column ${busy ? 'is-updating' : ''}`} data-status={status}><header><span>{label}</span><strong>{applications.length}</strong></header><div className="pipeline-column-body">{applications.length ? <>{visibleApplications.map((application) => <CandidateCard key={application.id} application={application} updating={updatingId === application.id} onMove={onMove} open={openActionId === application.id} setOpenActionId={setOpenActionId} />)}{hiddenCount > 0 && <button type="button" className="pipeline-view-more" onClick={() => setExpanded(true)}>+ View {hiddenCount} more</button>}{expanded && applications.length > 3 && <button type="button" className="pipeline-view-more" onClick={() => setExpanded(false)}>Show less</button>}</> : <div className="pipeline-empty"><strong>No candidates</strong><span>Candidates moved to this stage will appear here.</span></div>}</div></section>
+}
+
+function PipelineOverview({ grouped }) {
+  const stages = activeColumns.map(([status, label]) => ({ status, label, count: grouped.get(status)?.length || 0 }))
+  const conversions = stages.slice(1).map((stage, index) => {
+    const previous = stages[index]
+    return previous.count ? Math.round((stage.count / previous.count) * 100) : 0
+  })
+  return <section className="pipeline-overview-card panel"><div className="panel-header"><div><h2 className="panel-title">Pipeline Overview</h2><p className="panel-subtitle">Stage volume and conversion based on the current filters.</p></div></div><div className="pipeline-overview-flow">{stages.map((stage, index) => <div className="pipeline-overview-step" data-status={stage.status} key={stage.status}><strong>{stage.count}</strong><span>{stage.label}</span>{index < conversions.length && <em>{conversions[index]}%</em>}</div>)}</div></section>
 }
 
 function CandidateCard({ application, updating, onMove, open, setOpenActionId }) {

@@ -14,6 +14,7 @@ from app.models.notification import NotificationType
 from app.models.user import User
 from app.schemas.contract import ContractCreate, ContractResponse, ContractUpdate
 from app.services.notifications import create_notification, notify_hr_admins
+from app.services.email_notifications import send_contract_sent_email
 
 CONTRACT_STORAGE_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "contracts"
 PDF_SIGNATURE = b"%PDF-"
@@ -157,6 +158,8 @@ def send_contract(db: Session, contract_id: int, actor_id: int) -> ContractRespo
         )
         db.commit()
         loaded = _get_contract(db, contract_id)
+        if loaded:
+            send_contract_sent_email(loaded)
         return _response(loaded) if loaded else None
     except SQLAlchemyError:
         db.rollback()

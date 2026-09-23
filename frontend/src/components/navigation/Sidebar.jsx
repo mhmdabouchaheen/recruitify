@@ -13,7 +13,7 @@ const nav = [
   [UsersRound, 'Candidates', '/candidates', null, ['hr', 'admin']],
   [KanbanSquare, 'Pipeline', '/pipeline', null, ['hr', 'admin']],
   [CalendarDays, 'Interviews', '/interviews'],
-  [BarChart3, 'Reports', null, null, ['hr', 'admin']],
+  [BarChart3, 'Reports', '/reports', null, ['hr', 'admin']],
   [Bell, 'Notifications', '/notifications'],
 ]
 
