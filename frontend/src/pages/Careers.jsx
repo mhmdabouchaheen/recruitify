@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BriefcaseBusiness, CalendarDays, LogIn, LogOut, MapPin, Search, UserRound } from 'lucide-react'
+import { Bell, BriefcaseBusiness, CalendarDays, LogIn, LogOut, MapPin, Search, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { getPublicJobs } from '../api/publicJobs'
+import { getUnreadNotificationCount } from '../api/notifications'
 import { Button, Skeleton } from '../components/ui'
 import { useAuth } from '../context/useAuth'
 import { formatDate } from '../utils/jobs'
@@ -119,11 +120,30 @@ export default function Careers() {
 }
 
 export function PublicHeader({ isAuthenticated, accountPath = '/overview' }) {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return undefined
+    let cancelled = false
+    const loadUnread = () => {
+      getUnreadNotificationCount()
+        .then((data) => { if (!cancelled) setUnreadNotifications(data.unread_count || 0) })
+        .catch(() => { if (!cancelled) setUnreadNotifications(0) })
+    }
+    loadUnread()
+    window.addEventListener('recruitify:notifications-updated', loadUnread)
+    return () => {
+      cancelled = true
+      window.removeEventListener('recruitify:notifications-updated', loadUnread)
+    }
+  }, [isAuthenticated, user])
+
   return <header className="public-header">
     <Link className="public-brand" to="/careers"><span className="brand-mark"><BriefcaseBusiness size={17} /></span><span>Recruitify</span></Link>
     <nav>
       <Link to="/careers">Find Jobs</Link>
+      {isAuthenticated && user && <Link to="/notifications" className="public-notification-link notification-link" aria-label="Notifications"><Bell size={17} />{unreadNotifications > 0 && <span className="notification-count-badge">{unreadNotifications}</span>}</Link>}
       {isAuthenticated
         ? <ApplicantAccountMenu accountPath={accountPath} logout={logout} />
         : <Button variant="secondary" icon={LogIn} render={<Link to="/login" />}>Login</Button>}

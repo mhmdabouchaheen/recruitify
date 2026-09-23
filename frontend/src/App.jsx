@@ -1,10 +1,11 @@
 import { lazy, Suspense, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './layouts/AppShell'
 import { AuthProvider } from './context/AuthContext'
 import { JobsProvider } from './context/JobsContext'
 import { useAuth } from './context/useAuth'
+import { PublicHeader } from './pages/Careers'
 import { PageSkeleton } from './components/jobs/JobShared'
 import './App.css'
 import './styles/jobs.css'
@@ -41,10 +42,10 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/careers/:jobId" element={<CareerDetails />} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/careers/:jobId/apply" element={<ProtectedRoute><ApplyJob /></ProtectedRoute>} />
-            <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
-            <Route path="/applications/:applicationId" element={<ProtectedRoute><ApplicationDetails /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute allowedRoles={['applicant']}><Profile /></ProtectedRoute>} />
+            <Route path="/careers/:jobId/apply" element={<ProtectedRoute allowedRoles={['applicant']}><ApplyJob /></ProtectedRoute>} />
+            <Route path="/applications" element={<ProtectedRoute allowedRoles={['applicant']}><Applications /></ProtectedRoute>} />
+            <Route path="/applications/:applicationId" element={<ProtectedRoute allowedRoles={['applicant']}><ApplicationDetails /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsSurface mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen} /></ProtectedRoute>} />
             <Route path="/*" element={
               <ProtectedRoute blockApplicant>
@@ -86,10 +87,28 @@ export default function App() {
 
 function NotificationsSurface({ mobileNavOpen, setMobileNavOpen }) {
   const { user } = useAuth()
-  if (user?.role === 'applicant') return <Notifications />
+  if (user?.role === 'applicant') return <ApplicantNotificationsSurface />
   return (
     <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
       <Notifications />
     </AppShell>
+  )
+}
+
+
+function ApplicantNotificationsSurface() {
+  return (
+    <div className="public-page">
+      <PublicHeader isAuthenticated accountPath="/profile" />
+      <div className="profile-page-shell applicant-notifications-shell">
+        <nav className="applicant-nav" aria-label="Applicant navigation">
+          <Link to="/careers">Find Jobs</Link>
+          <Link to="/applications">My Applications</Link>
+          <Link to="/profile">Profile</Link>
+          <Link className="active" to="/notifications">Notifications</Link>
+        </nav>
+        <Notifications />
+      </div>
+    </div>
   )
 }

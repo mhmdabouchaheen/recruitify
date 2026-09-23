@@ -3,13 +3,16 @@
 import { PageSkeleton } from '../jobs/JobShared'
 import { useAuth } from '../../context/useAuth'
 
-export function ProtectedRoute({ blockApplicant = false, children }) {
+export function ProtectedRoute({ blockApplicant = false, allowedRoles, children }) {
   const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
-  if (loading) return <PageSkeleton />
+  if (loading || (isAuthenticated && !user)) return <PageSkeleton />
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />
   if (blockApplicant && user?.role === 'applicant') return <Navigate to="/careers" replace />
+  if (allowedRoles?.length && !allowedRoles.includes(user?.role)) {
+    return <Navigate to={user?.role === 'applicant' ? '/careers' : '/overview'} replace />
+  }
 
   return children
 }

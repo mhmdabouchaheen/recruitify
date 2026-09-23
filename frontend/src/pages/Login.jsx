@@ -3,11 +3,24 @@ import { ArrowRight, Building2, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button, Field } from '../components/ui'
+import { PageSkeleton } from '../components/jobs/JobShared'
 import { useAuth } from '../context/useAuth'
+
 
 function fallbackForRole(role) {
   return role === 'applicant' ? '/careers' : '/overview'
 }
+
+function safeRedirectForRole(path, role) {
+  if (!path) return fallbackForRole(role)
+  if (role === 'applicant') {
+    if (path === '/profile' || path === '/applications' || path.startsWith('/applications/') || path.startsWith('/careers/')) return path
+    return '/careers'
+  }
+  if (path === '/overview' || path === '/notifications' || path.startsWith('/jobs') || path.startsWith('/candidates') || path.startsWith('/pipeline') || path.startsWith('/interviews') || path.startsWith('/reports') || path.startsWith('/contracts')) return path
+  return '/overview'
+}
+
 
 export default function Login() {
   const { isAuthenticated, loading, login, user } = useAuth()
@@ -23,12 +36,14 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      navigate(from || fallbackForRole(user.role), { replace: true })
+      navigate(safeRedirectForRole(from, user.role), { replace: true })
     }
   }, [from, isAuthenticated, loading, navigate, user])
 
+  if (loading) return <PageSkeleton />
+
   if (!loading && isAuthenticated && user) {
-    return <Navigate to={from || fallbackForRole(user.role)} replace />
+    return <Navigate to={safeRedirectForRole(from, user.role)} replace />
   }
 
   const submit = async (event) => {
@@ -38,7 +53,7 @@ export default function Login() {
 
     try {
       const nextUser = await login(email, password)
-      navigate(from || fallbackForRole(nextUser.role), { replace: true })
+      navigate(safeRedirectForRole(from, nextUser.role), { replace: true })
     } catch (requestError) {
       setError(requestError.status === 401
         ? 'Invalid email or password.'

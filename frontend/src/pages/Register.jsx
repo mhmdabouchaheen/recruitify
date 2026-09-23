@@ -4,10 +4,20 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { registerApplicant } from '../api/auth'
 import { Button, Field } from '../components/ui'
+import { PageSkeleton } from '../components/jobs/JobShared'
 import { useAuth } from '../context/useAuth'
 
 const passwordRequirements = ['At least 8 characters', 'One uppercase letter', 'One lowercase letter', 'One number', 'No leading or trailing spaces']
 function fallbackForRole(role) { return role === 'applicant' ? '/careers' : '/overview' }
+function safeRedirectForRole(path, role) {
+  if (!path) return fallbackForRole(role)
+  if (role === 'applicant') {
+    if (path === '/profile' || path === '/applications' || path.startsWith('/applications/') || path.startsWith('/careers/')) return path
+    return '/careers'
+  }
+  if (path === '/overview' || path === '/notifications' || path.startsWith('/jobs') || path.startsWith('/candidates') || path.startsWith('/pipeline') || path.startsWith('/interviews') || path.startsWith('/reports') || path.startsWith('/contracts')) return path
+  return '/overview'
+}
 function destinationFromLocation(location) { const from = location.state?.from; if (!from) return ''; return `${from.pathname || ''}${from.search || ''}${from.hash || ''}` || '' }
 
 export default function Register() {
@@ -23,8 +33,9 @@ export default function Register() {
   const navigate = useNavigate()
   const from = destinationFromLocation(location)
 
-  useEffect(() => { if (!loading && isAuthenticated && user) navigate(from || fallbackForRole(user.role), { replace: true }) }, [from, isAuthenticated, loading, navigate, user])
-  if (!loading && isAuthenticated && user) return <Navigate to={from || fallbackForRole(user.role)} replace />
+  useEffect(() => { if (!loading && isAuthenticated && user) navigate(safeRedirectForRole(from, user.role), { replace: true }) }, [from, isAuthenticated, loading, navigate, user])
+  if (loading) return <PageSkeleton />
+  if (!loading && isAuthenticated && user) return <Navigate to={safeRedirectForRole(from, user.role)} replace />
 
   const update = (field, value) => { setForm((current) => ({ ...current, [field]: value })); setErrors((current) => ({ ...current, [field]: '' })); setApiError('') }
   const validate = () => {
@@ -42,7 +53,7 @@ export default function Register() {
   const submit = async (event) => {
     event.preventDefault(); if (submitting || !validate()) return
     setSubmitting(true); setApiError('')
-    try { const email = form.email.trim().toLowerCase(); await registerApplicant({ firstName: form.firstName.trim(), lastName: form.lastName.trim(), email, password: form.password }); const nextUser = await login(email, form.password); navigate(from || fallbackForRole(nextUser.role), { replace: true }) }
+    try { const email = form.email.trim().toLowerCase(); await registerApplicant({ firstName: form.firstName.trim(), lastName: form.lastName.trim(), email, password: form.password }); const nextUser = await login(email, form.password); navigate(safeRedirectForRole(from, nextUser.role), { replace: true }) }
     catch (error) { setApiError(messageForRegisterError(error)) }
     finally { setSubmitting(false) }
   }
