@@ -53,20 +53,20 @@ export default function App() {
               <ProtectedRoute blockApplicant>
                 <AppShell mobileNavOpen={mobileNavOpen} setMobileNavOpen={setMobileNavOpen}>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/overview" replace />} />
-                    <Route path="/overview" element={<Overview />} />
-                    <Route path="/jobs" element={<Jobs />} />
-                    <Route path="/candidates" element={<Candidates />} />
-                    <Route path="/pipeline" element={<Pipeline />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/candidates/:applicationId" element={<CandidateDetails />} />
-                    <Route path="/interviews" element={<Interviews />} />
-                    <Route path="/interviews/:interviewId" element={<InterviewDetails />} />
-                    <Route path="/jobs/new" element={<JobFormPage />} />
-                    <Route path="/jobs/:jobId" element={<JobDetails />} />
-                    <Route path="/jobs/:jobId/edit" element={<JobFormPage />} />
-                    <Route path="/jobs/:jobId/preview" element={<JobPreview />} />
-                    <Route path="*" element={<Navigate to="/overview" replace />} />
+                    <Route path="/" element={<RoleHome />} />
+                    <Route path="/overview" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><Overview /></ProtectedRoute>} />
+                    <Route path="/jobs" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><Jobs /></ProtectedRoute>} />
+                    <Route path="/candidates" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><Candidates /></ProtectedRoute>} />
+                    <Route path="/pipeline" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><Pipeline /></ProtectedRoute>} />
+                    <Route path="/reports" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><Reports /></ProtectedRoute>} />
+                    <Route path="/candidates/:applicationId" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><CandidateDetails /></ProtectedRoute>} />
+                    <Route path="/interviews" element={<ProtectedRoute allowedRoles={['hr', 'admin', 'interviewer']}><Interviews /></ProtectedRoute>} />
+                    <Route path="/interviews/:interviewId" element={<ProtectedRoute allowedRoles={['hr', 'admin', 'interviewer']}><InterviewDetails /></ProtectedRoute>} />
+                    <Route path="/jobs/new" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><JobFormPage /></ProtectedRoute>} />
+                    <Route path="/jobs/:jobId" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><JobDetails /></ProtectedRoute>} />
+                    <Route path="/jobs/:jobId/edit" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><JobFormPage /></ProtectedRoute>} />
+                    <Route path="/jobs/:jobId/preview" element={<ProtectedRoute allowedRoles={['hr', 'admin']}><JobPreview /></ProtectedRoute>} />
+                    <Route path="*" element={<RoleHome />} />
                   </Routes>
                 </AppShell>
               </ProtectedRoute>
@@ -86,6 +86,11 @@ export default function App() {
 
 
 
+
+function RoleHome() {
+  const { user } = useAuth()
+  return <Navigate to={user?.role === 'interviewer' ? '/interviews' : '/overview'} replace />
+}
 
 function NotificationsSurface({ mobileNavOpen, setMobileNavOpen }) {
   const { user } = useAuth()

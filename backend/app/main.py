@@ -14,7 +14,6 @@ from app.routers.jobs import router as jobs_router
 from app.routers.notifications import router as notifications_router
 from app.routers.public_jobs import router as public_jobs_router
 from app.routers.reports import router as reports_router
-from app.routers.rbac_test import router as rbac_test_router
 
 app = FastAPI()
 
@@ -38,7 +37,6 @@ app.router.include_router(hr_applications_router)
 app.router.include_router(interviews_router)
 app.router.include_router(public_jobs_router)
 app.router.include_router(reports_router)
-app.router.include_router(rbac_test_router)
 
 
 @app.get("/")

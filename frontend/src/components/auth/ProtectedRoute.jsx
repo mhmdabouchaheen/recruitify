@@ -11,8 +11,14 @@ export function ProtectedRoute({ blockApplicant = false, allowedRoles, children 
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />
   if (blockApplicant && user?.role === 'applicant') return <Navigate to="/careers" replace />
   if (allowedRoles?.length && !allowedRoles.includes(user?.role)) {
-    return <Navigate to={user?.role === 'applicant' ? '/careers' : '/overview'} replace />
+    return <Navigate to={fallbackForRole(user?.role)} replace />
   }
 
   return children
+}
+
+function fallbackForRole(role) {
+  if (role === 'applicant') return '/careers'
+  if (role === 'interviewer') return '/interviews'
+  return '/overview'
 }
