@@ -77,7 +77,7 @@ export default function Jobs() {
   }
 
   return <section className="jobs-management-page">
-    <header className="jobs-management-head"><div><p className="eyebrow">Job Management</p><h1>Jobs</h1><p>Create, manage, and track job vacancies across your organization.</p></div><div><Button variant="secondary" render={<Link to="/careers" target="_blank" />}>View Career Page <ExternalLink size={14} /></Button><Button icon={Plus} render={<Link to="/jobs/new" />}>Create Job</Button></div></header>
+    <header className="jobs-management-head"><div><h1>Jobs</h1></div><div><Button variant="secondary" render={<Link to="/careers" target="_blank" />}>View Career Page <ExternalLink size={14} /></Button><Button icon={Plus} render={<Link to="/jobs/new" />}>Create Job</Button></div></header>
 
     <section className="jobs-management-summary" aria-label="Jobs summary">
       <SummaryCard icon={BriefcaseBusiness} tone="blue" label="Total Jobs" value={counts.all} />

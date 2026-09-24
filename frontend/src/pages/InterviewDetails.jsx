@@ -137,11 +137,7 @@ export default function InterviewDetails() {
   return <section className="interview-detail-page candidate-detail-page">
     <Link className="text-action candidate-back" to="/interviews"><ArrowLeft size={14} /> Back to interviews</Link>
     <header className="candidate-detail-head interview-detail-head">
-      <div>
-        <p className="eyebrow">Interview details</p>
-        <h1 className="page-title">{interview.candidate_name}</h1>
-        <p className="page-description">{interview.job_title}{interview.department ? ` ? ${interview.department}` : ''}</p>
-      </div>
+      <div><h1 className="page-title">{interview.candidate_name}</h1></div>
       <StatusBadge>{formatInterviewStatus(interview.status)}</StatusBadge>
     </header>
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Archive, Eye, FilePenLine, Radio, XCircle } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Avatar, Button, Modal } from '../components/ui'
-import { JobNotFound, JobStatusBadge, JobSummary, PageHeader, PageSkeleton } from '../components/jobs/JobShared'
+import { JobNotFound, JobSummary, PageHeader, PageSkeleton } from '../components/jobs/JobShared'
 import { formatDate } from '../utils/jobs'
 import { useJobs } from '../context/JobsContext'
 import { candidatePreview } from '../data/jobs'
@@ -54,8 +54,7 @@ export default function JobDetails() {
     }
   }
   return <>
-    <PageHeader backTo="/jobs" eyebrow={job.id} title={job.title}
-      description={<span className="job-header-meta">{job.department} · {job.location} · {job.employmentType} <JobStatusBadge status={job.status} /></span>}
+    <PageHeader backTo="/jobs" title={job.title}
       actions={<>
         <Button variant="secondary" icon={Eye} render={<Link to={`/jobs/${job.id}/preview`} />}>Preview</Button>
         {job.status !== 'Archived' && <Button variant="secondary" icon={FilePenLine} render={<Link to={`/jobs/${job.id}/edit`} />}>Edit</Button>}

@@ -114,8 +114,18 @@ def _hired_application_ids(applications: list[Application], contracts: list[Cont
 
 
 def _funnel(applications: list[Application], hired_ids: set[int]) -> dict:
-    counts = Counter(application.status.value for application in applications)
-    stages = [{"key": key.value, "label": label, "count": counts.get(key.value, 0)} for key, label in FUNNEL_STAGES]
+    stage_order = [status for status, _label in FUNNEL_STAGES]
+    stage_index = {status: index for index, status in enumerate(stage_order)}
+    reached_counts = Counter()
+
+    for application in applications:
+        reached_index = stage_index.get(application.status)
+        if reached_index is None:
+            continue
+        for status in stage_order[: reached_index + 1]:
+            reached_counts[status.value] += 1
+
+    stages = [{"key": key.value, "label": label, "count": reached_counts.get(key.value, 0)} for key, label in FUNNEL_STAGES]
     stages.append({"key": "hired", "label": "Hired", "count": len(hired_ids)})
     conversions = []
     for previous, current in zip(stages, stages[1:]):

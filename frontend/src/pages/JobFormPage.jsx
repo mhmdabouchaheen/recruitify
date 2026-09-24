@@ -38,9 +38,8 @@ export default function JobFormPage() {
   if (jobId && !existing) return <PageSkeleton />
 
   return <>
-    <PageHeader backTo={jobId ? `/jobs/${jobId}` : '/jobs'} eyebrow={jobId ? 'Job management' : 'New vacancy'}
-      title={jobId ? `Edit ${existing.title}` : 'Create job'}
-      description={jobId && existing.status === 'Published' ? 'Changes to this published vacancy may be visible to applicants.' : 'Build a clear vacancy that gives candidates the information they need.'} />
+    <PageHeader backTo={jobId ? `/jobs/${jobId}` : '/jobs'}
+      title={jobId ? `Edit ${existing.title}` : 'Create job'} />
     <JobForm initialJob={initial} mode={jobId ? 'edit' : 'create'} onSave={saveJob} />
   </>
 }

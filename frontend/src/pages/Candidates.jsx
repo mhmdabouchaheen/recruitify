@@ -61,7 +61,7 @@ export default function Candidates() {
 
   return <section className="candidates-page">
     <header className="candidates-head">
-      <div><p className="eyebrow">Candidate Management</p><h1>Candidates</h1><p>Review submitted applications and move candidates through the pipeline.</p></div>
+      <div><h1>Candidates</h1></div>
     </header>
 
     <section className="candidate-summary-grid" aria-label="Candidate summary">

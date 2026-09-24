@@ -51,9 +51,7 @@ export default function Reports() {
   return <section className="reports-page">
     <header className="reports-head">
       <div>
-        <p className="eyebrow">Analytics</p>
         <h1>Recruitment Reports &amp; Analytics</h1>
-        <p>Turn your recruitment data into insights. Track performance, identify trends, and understand hiring outcomes.</p>
       </div>
       {result.data && <button type="button" className="reports-export" onClick={() => exportReport(result.data, getActiveFilterLabels(filters, result.data))}><Download size={15} />Export Report</button>}
     </header>

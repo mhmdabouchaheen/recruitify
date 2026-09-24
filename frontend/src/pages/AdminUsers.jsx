@@ -108,7 +108,7 @@ export default function AdminUsers() {
 
   return <section className="admin-users-page">
     <header className="admin-users-head">
-      <div><p className="eyebrow">Admin</p><h1>User Management</h1><p>Manage internal Recruitify accounts, roles, and access status.</p></div>
+      <div><h1>User Management</h1></div>
       <Button icon={Plus} onClick={() => setCreateOpen(true)}>Create User</Button>
     </header>
 

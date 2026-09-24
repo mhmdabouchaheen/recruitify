@@ -122,7 +122,7 @@ export default function Pipeline() {
   if (!isHr) return <Navigate to="/interviews" replace />
 
   return <section className="pipeline-page">
-    <header className="page-head pipeline-head"><div><p className="eyebrow">Recruitment pipeline</p><h1 className="page-title">Pipeline</h1><p className="page-description">Track and manage candidates across your recruitment process.</p></div></header>
+    <header className="page-head pipeline-head"><div><h1 className="page-title">Pipeline</h1></div></header>
 
     <div className="pipeline-toolbar panel">
       <label className="candidate-search pipeline-search"><Search size={15} /><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search candidates, emails, or jobs" type="search" /></label>

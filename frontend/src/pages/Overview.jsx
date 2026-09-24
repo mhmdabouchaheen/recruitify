@@ -26,15 +26,15 @@ export function Overview() {
   if (!isHr) return <Navigate to="/interviews" replace />
 
   return <section className="dashboard-page dashboard-redesign-page">
-    <DashboardHero user={user} />
+    <DashboardHero />
     {result.loading && <DashboardLoading />}
     {!result.loading && result.error && <DashboardState title="Unable to load dashboard" description={result.error} />}
     {!result.loading && result.data && <DashboardContent dashboard={result.data} />}
   </section>
 }
 
-function DashboardHero({ user }) {
-  return <header className="dashboard-hero"><div><p className="eyebrow">Overview</p><h1>{greeting()}, {user?.first_name || 'Recruiter'} ??</h1><p>Here?s what?s happening with your recruitment process today.</p></div><aside><strong>{formatToday()}</strong><span>Great talent builds great teams.</span></aside></header>
+function DashboardHero() {
+  return <header className="dashboard-hero"><div><h1>HR</h1></div><aside><strong>{formatToday()}</strong></aside></header>
 }
 
 function DashboardContent({ dashboard }) {
@@ -75,5 +75,4 @@ function formatTime(value) { return new Intl.DateTimeFormat(undefined, { hour: '
 function formatToday() { return new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date()) }
 function formatMonthDay(value) { const date = new Date(value); return <><small>{date.toLocaleString(undefined, { month: 'short' })}</small><strong>{date.getDate()}</strong></> }
 function initials(name) { return name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase() }
-function greeting() { const hour = new Date().getHours(); if (hour < 12) return 'Good morning'; if (hour < 18) return 'Good afternoon'; return 'Good evening' }
 function formatRelative(value) { const diff = Date.now() - new Date(value).getTime(); const hours = Math.max(1, Math.round(diff / 3600000)); if (hours < 24) return `${hours}h ago`; return `${Math.round(hours / 24)}d ago` }

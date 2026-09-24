@@ -165,7 +165,7 @@ export default function CandidateDetails() {
 
   return <section className="candidate-detail-page">
     <Link className="text-action candidate-back" to="/candidates"><ArrowLeft size={14} /> Back to candidates</Link>
-    <header className="candidate-detail-head"><div><p className="eyebrow">Candidate review</p><h1 className="page-title">{fullName}</h1><p className="page-description">Applied for {application.job.title}</p></div><StatusBadge>{formatApplicationStatus(application.status)}</StatusBadge></header>
+    <header className="candidate-detail-head"><div><h1 className="page-title">{fullName}</h1></div><StatusBadge>{formatApplicationStatus(application.status)}</StatusBadge></header>
     <div className="candidate-detail-grid">
       <main className="candidate-main-stack">
         <section className="panel candidate-card"><h2>Candidate profile</h2><div className="candidate-profile-grid"><Info label="Email" value={application.applicant.email} /><Info label="Phone" value={profile?.phone} /><Info label="Location" value={profile?.location} /><Info label="Professional title" value={profile?.professional_title} /><Info label="LinkedIn" value={profile?.linkedin_url} /><Info label="GitHub" value={profile?.github_url} /></div>{profile?.summary && <p className="candidate-summary">{profile.summary}</p>}</section>

@@ -57,11 +57,7 @@ export default function Interviews() {
 
   return <section className="interviews-workspace interviews-page">
     <header className="interviews-page-head">
-      <div>
-        <p className="eyebrow">Interview Management</p>
-        <h1>Interviews</h1>
-        <p>{user?.role === 'interviewer' ? 'Assigned interviews only.' : 'Schedule, conduct, and track interviews with ease.'}</p>
-      </div>
+      <div><h1>Interviews</h1></div>
     </header>
 
     {state.loading && <div className="panel interviews-loading"><Skeleton height={82} /><Skeleton height={280} /><Skeleton height={260} /></div>}

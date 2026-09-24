@@ -47,7 +47,7 @@ export default function Notifications() {
   }
 
   return <main className="notifications-page">
-    <header className="page-head notifications-head"><div><p className="eyebrow">Notifications</p><h1 className="page-title">Notifications</h1><p className="page-description">Stay updated on your recruitment activity.</p></div>{unreadCount > 0 && <Button variant="secondary" onClick={markAll} disabled={busy}>Mark all as read</Button>}</header>
+    <header className="page-head notifications-head"><div><h1 className="page-title">Notifications</h1></div>{unreadCount > 0 && <Button variant="secondary" onClick={markAll} disabled={busy}>Mark all as read</Button>}</header>
     <div className="notifications-tabs" role="tablist" aria-label="Notification filters"><button className={filter === 'all' ? 'active' : ''} onClick={() => { setResult((current) => ({ ...current, loading: true, error: '' })); setFilter('all') }} type="button">All</button><button className={filter === 'unread' ? 'active' : ''} onClick={() => { setResult((current) => ({ ...current, loading: true, error: '' })); setFilter('unread') }} type="button">Unread</button></div>
     {result.loading && <div className="panel notifications-loading"><Skeleton height={42} /><Skeleton height={72} /><Skeleton height={72} /></div>}
     {!result.loading && result.error && <NotificationsState title="Unable to load notifications" description={result.error} />}
