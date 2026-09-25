@@ -31,7 +31,7 @@ from app.models.job import ApplicationQuestion, EmploymentType, Job, JobSkill, J
 from app.models.user import User, UserRole
 from app.services.cv_storage import save_cv_bytes
 
-DEMO_DOMAIN = "demo.recruitify.local"
+DEMO_DOMAIN = "demo.recruitify.app"
 PASSWORD = os.getenv("DEMO_SEED_PASSWORD", "RecruitifyDemo123!")
 NOW = datetime.now(timezone.utc).replace(microsecond=0)
 
