@@ -9,6 +9,7 @@ import {
   getHrApplicationActivities,
   getHrApplicationNotes,
   getHrApplicationAiAnalysis,
+  downloadHrApplicationCv,
   hrStatusOptions,
   runHrApplicationAiAnalysis,
   updateHrApplicationStatus,
@@ -58,6 +59,8 @@ export default function CandidateDetails() {
   const [interviewError, setInterviewError] = useState('')
   const [contract, setContract] = useState(null)
   const [contractMessage, setContractMessage] = useState('')
+  const [cvBusy, setCvBusy] = useState(false)
+  const [cvMessage, setCvMessage] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -146,6 +149,18 @@ export default function CandidateDetails() {
   }
 
 
+  const downloadCv = async () => {
+    setCvBusy(true)
+    setCvMessage('')
+    try {
+      await downloadHrApplicationCv(applicationId, application.cv?.original_filename || `application-${applicationId}-cv.pdf`)
+    } catch (requestError) {
+      setCvMessage(requestError.message || 'CV could not be downloaded.')
+    } finally {
+      setCvBusy(false)
+    }
+  }
+
   const runAiAnalysis = async (refresh = false) => {
     setAiLoading(true)
     setAiMessage('')
@@ -169,7 +184,7 @@ export default function CandidateDetails() {
     <div className="candidate-detail-grid">
       <main className="candidate-main-stack">
         <section className="panel candidate-card"><h2>Candidate profile</h2><div className="candidate-profile-grid"><Info label="Email" value={application.applicant.email} /><Info label="Phone" value={profile?.phone} /><Info label="Location" value={profile?.location} /><Info label="Professional title" value={profile?.professional_title} /><Info label="LinkedIn" value={profile?.linkedin_url} /><Info label="GitHub" value={profile?.github_url} /></div>{profile?.summary && <p className="candidate-summary">{profile.summary}</p>}</section>
-        <section className="panel candidate-card"><h2>Application</h2><dl className="application-detail-list"><InfoTerm label="Job" value={application.job.title} /><InfoTerm label="Department" value={application.job.department} /><InfoTerm label="Submitted" value={formatDate(application.submitted_at)} /><InfoTerm label="CV used" value={application.cv.original_filename} /></dl></section>
+        <section className="panel candidate-card"><div className="candidate-card-head"><div><h2>Application</h2></div><Button variant="secondary" onClick={downloadCv} disabled={cvBusy}>{cvBusy ? 'Downloading...' : 'Download CV'}</Button></div><dl className="application-detail-list"><InfoTerm label="Job" value={application.job.title} /><InfoTerm label="Department" value={application.job.department} /><InfoTerm label="Submitted" value={formatDate(application.submitted_at)} /><InfoTerm label="CV used" value={application.cv.original_filename} /></dl>{cvMessage && <p className="login-error">{cvMessage}</p>}</section>
         <ContractSection application={application} contract={contract} setContract={setContract} message={contractMessage} setMessage={setContractMessage} onRefreshActivity={refreshActivity} />
         <InterviewSection interviews={interviews} interviewers={interviewers} error={interviewError} setError={setInterviewError} applicationId={applicationId} onRefresh={refreshInterviews} />
         <AiAnalysisCard analysis={aiAnalysis} loading={aiLoading} message={aiMessage} onAnalyze={() => runAiAnalysis(false)} onRefresh={() => runAiAnalysis(true)} />

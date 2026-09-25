@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -19,8 +20,10 @@ from app.schemas.hr_application import (
 from app.services.ai_analysis import AIProviderError, AIProviderUnavailable
 from app.services.candidate_matching import get_stored_application_match, run_application_ai_analysis
 from app.services.cv_extraction import CVExtractionError
+from app.services.cv_storage import CVStorageError, read_cv_bytes
 from app.services.hr_applications import (
     create_application_note,
+    get_hr_application,
     get_hr_application_detail,
     list_application_activities,
     list_application_notes,
@@ -54,6 +57,32 @@ def get_application_endpoint(
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
     return application
+
+
+@router.get("/{application_id}/cv")
+def download_application_cv_endpoint(
+    application_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr_or_admin),
+):
+    application = get_hr_application(db, application_id)
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    if application.cv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    try:
+        content = read_cv_bytes(application.cv.stored_filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV file not found") from exc
+    except CVStorageError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="CV file could not be retrieved") from exc
+    filename = application.cv.original_filename or f"application-{application.id}-cv.pdf"
+    safe_filename = filename.replace('"', "'").replace("\r", " ").replace("\n", " ")
+    return Response(
+        content=content,
+        media_type=application.cv.content_type or "application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
 
 
 @router.patch("/{application_id}/status", response_model=HRApplicationDetail)

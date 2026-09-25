@@ -1,4 +1,7 @@
 import { apiRequest } from '../lib/apiClient'
+import { getAccessToken } from '../lib/authToken'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 const statusToApi = {
   Applied: 'applied',
@@ -74,4 +77,22 @@ export async function getHrApplicationAiAnalysis(applicationId) {
 export async function runHrApplicationAiAnalysis(applicationId, refresh = false) {
   const suffix = refresh ? '?refresh=true' : ''
   return apiRequest(`/hr/applications/${applicationId}/ai-analysis${suffix}`, { method: 'POST' })
+}
+
+
+export async function downloadHrApplicationCv(applicationId, filename = `application-${applicationId}-cv.pdf`) {
+  const token = getAccessToken()
+  const response = await fetch(`${API_BASE_URL}/hr/applications/${applicationId}/cv`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) throw new Error('CV could not be downloaded')
+  const blob = await response.blob()
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 }
