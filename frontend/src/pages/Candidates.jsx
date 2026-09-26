@@ -46,8 +46,7 @@ export default function Candidates() {
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     return result.applications.filter((application) => {
-      const name = `${application.applicant_first_name} ${application.applicant_last_name}`.toLowerCase()
-      const matchesSearch = !search || name.includes(search) || application.applicant_email.toLowerCase().includes(search) || application.job_title.toLowerCase().includes(search)
+      const matchesSearch = matchesCandidateSearch(application, search)
       const matchesJob = !filters.job_id || String(application.job_id) === filters.job_id
       const matchesDepartment = !filters.department || application.department === filters.department
       const matchesStatus = !filters.status || application.status === filters.status
@@ -101,6 +100,12 @@ function SummaryCard({ icon: Icon, tone, label, value }) { return <article class
 function CandidateState({ title, description, compact = false }) { return <div className={`careers-state ${compact ? 'candidate-state-compact' : ''}`}><span><FileText size={22} /></span><h2>{title}</h2><p>{description}</p></div> }
 function formatDate(value) { return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value)) }
 function initials(application) { return `${application.applicant_first_name?.[0] || ''}${application.applicant_last_name?.[0] || ''}`.toUpperCase() || 'CA' }
+function candidateName(application) { return `${application.applicant_first_name || ''} ${application.applicant_last_name || ''}`.trim() }
+function matchesCandidateSearch(application, search) {
+  if (!search) return true
+  return [candidateName(application), application.applicant_email, application.job_title]
+    .some((value) => String(value || '').toLowerCase().includes(search))
+}
 function statusToValue(status) { return status.toLowerCase().replaceAll(' ', '_') }
 function buildCounts(applications) { return applications.reduce((acc, application) => { acc[application.status] = (acc[application.status] || 0) + 1; return acc }, {}) }
 function tabCount(key, counts, total) { if (key === 'all') return total; if (key === 'interview') return (counts.interview_scheduled || 0) + (counts.interview_completed || 0); return counts[key] || 0 }
