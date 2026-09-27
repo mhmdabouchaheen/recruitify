@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Bot, BriefcaseBusiness, CalendarDays, FileText, Github, Linkedin, Mail, MapPin, MessageSquare, Phone, Sparkles, UserRound } from 'lucide-react'
+import { ArrowLeft, Bot, BriefcaseBusiness, CalendarDays, FileText, ExternalLink, Mail, MapPin, MessageSquare, Phone, Sparkles, UserRound } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import {
@@ -183,7 +183,7 @@ export default function CandidateDetails() {
     <header className="candidate-detail-head ats-candidate-hero"><div><p className="eyebrow">Candidate workspace</p><h1 className="page-title">{fullName}</h1><div className="ats-candidate-summary"><span><BriefcaseBusiness size={14} />{application.job.title}</span><span>{application.job.department}</span>{profile?.professional_title && <span>{profile.professional_title}</span>}</div></div><StatusBadge>{formatApplicationStatus(application.status)}</StatusBadge></header>
     <div className="candidate-detail-grid">
       <main className="candidate-main-stack">
-        <section className="panel candidate-card ats-profile-card"><div className="ats-section-title"><span><UserRound size={17} /></span><h2>Candidate profile</h2></div><div className="candidate-profile-grid ats-profile-grid"><Info icon={Mail} label="Email" value={application.applicant.email} /><Info icon={Phone} label="Phone" value={profile?.phone} /><Info icon={MapPin} label="Location" value={profile?.location} /><Info icon={BriefcaseBusiness} label="Professional title" value={profile?.professional_title} /><Info icon={Linkedin} label="LinkedIn" value={profile?.linkedin_url} /><Info icon={Github} label="GitHub" value={profile?.github_url} /></div>{profile?.summary && <p className="candidate-summary ats-candidate-profile-summary">{profile.summary}</p>}</section>
+        <section className="panel candidate-card ats-profile-card"><div className="ats-section-title"><span><UserRound size={17} /></span><h2>Candidate profile</h2></div><div className="candidate-profile-grid ats-profile-grid"><Info icon={Mail} label="Email" value={application.applicant.email} /><Info icon={Phone} label="Phone" value={profile?.phone} /><Info icon={MapPin} label="Location" value={profile?.location} /><Info icon={BriefcaseBusiness} label="Professional title" value={profile?.professional_title} /><Info icon={ExternalLink} label="LinkedIn" value={profile?.linkedin_url} /><Info icon={ExternalLink} label="GitHub" value={profile?.github_url} /></div>{profile?.summary && <p className="candidate-summary ats-candidate-profile-summary">{profile.summary}</p>}</section>
         <section className="panel candidate-card ats-application-card"><div className="candidate-card-head"><div className="ats-section-title"><span><FileText size={17} /></span><h2>Application</h2></div><Button variant="secondary" onClick={downloadCv} disabled={cvBusy}>{cvBusy ? 'Downloading...' : 'Download CV'}</Button></div><dl className="application-detail-list ats-application-meta"><InfoTerm label="Job" value={application.job.title} /><InfoTerm label="Department" value={application.job.department} /><InfoTerm label="Submitted" value={formatDate(application.submitted_at)} /></dl><div className="ats-cv-row"><span><FileText size={16} /></span><div><small>CV used</small><strong>{application.cv.original_filename}</strong></div></div>{cvMessage && <p className="login-error">{cvMessage}</p>}</section>
         <ContractSection application={application} contract={contract} setContract={setContract} message={contractMessage} setMessage={setContractMessage} onRefreshActivity={refreshActivity} />
         <InterviewSection interviews={interviews} interviewers={interviewers} error={interviewError} setError={setInterviewError} applicationId={applicationId} onRefresh={refreshInterviews} />
@@ -318,6 +318,8 @@ function ActivityDescription({ activity }) { const actor = activity.actor_first_
 function activityTitle(activity) { if (activity.event_type === 'status_changed') return 'Status changed'; if (activity.event_type === 'note_added') return 'HR note added'; if (activity.event_type === 'application_submitted') return 'Application submitted'; return 'Activity recorded' }
 function formatDate(value) { return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value)) }
 function formatRecommendation(value) { return value.split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ') }
+
+
 
 
 
