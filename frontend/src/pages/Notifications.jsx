@@ -1,5 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bell, BriefcaseBusiness, CalendarDays, CheckCircle2, FileText } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Bell, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
@@ -22,6 +22,7 @@ export default function Notifications() {
 
   const grouped = useMemo(() => groupNotifications(result.notifications), [result.notifications])
   const unreadCount = result.notifications.filter((item) => !item.is_read).length
+  const allCount = result.notifications.length
 
   const markOne = async (notification) => {
     if (notification.is_read) return
@@ -46,9 +47,28 @@ export default function Notifications() {
     }
   }
 
+  const switchFilter = (nextFilter) => {
+    setResult((current) => ({ ...current, loading: true, error: '' }))
+    setFilter(nextFilter)
+  }
+
   return <main className="notifications-page">
-    <header className="page-head notifications-head"><div><h1 className="page-title">Notifications</h1></div>{unreadCount > 0 && <Button variant="secondary" onClick={markAll} disabled={busy}>Mark all as read</Button>}</header>
-    <div className="notifications-tabs" role="tablist" aria-label="Notification filters"><button className={filter === 'all' ? 'active' : ''} onClick={() => { setResult((current) => ({ ...current, loading: true, error: '' })); setFilter('all') }} type="button">All</button><button className={filter === 'unread' ? 'active' : ''} onClick={() => { setResult((current) => ({ ...current, loading: true, error: '' })); setFilter('unread') }} type="button">Unread</button></div>
+    <header className="page-head notifications-head">
+      <div className="notifications-title-block">
+        <span className="notifications-title-icon"><Bell size={22} /></span>
+        <div>
+          <h1 className="page-title">Notifications</h1>
+          <p className="page-description">Stay updated with the latest activity in your recruitment process.</p>
+        </div>
+      </div>
+      {unreadCount > 0 && <Button variant="secondary" onClick={markAll} disabled={busy}>Mark all as read</Button>}
+    </header>
+
+    <div className="notifications-tabs" role="tablist" aria-label="Notification filters">
+      <button className={filter === 'all' ? 'active' : ''} onClick={() => switchFilter('all')} type="button">All <span>{allCount}</span></button>
+      <button className={filter === 'unread' ? 'active' : ''} onClick={() => switchFilter('unread')} type="button">Unread <span>{unreadCount}</span></button>
+    </div>
+
     {result.loading && <div className="panel notifications-loading"><Skeleton height={42} /><Skeleton height={72} /><Skeleton height={72} /></div>}
     {!result.loading && result.error && <NotificationsState title="Unable to load notifications" description={result.error} />}
     {!result.loading && !result.error && result.notifications.length === 0 && <NotificationsState title="No notifications yet" description="Updates about your recruitment activity will appear here." />}
@@ -58,12 +78,12 @@ export default function Notifications() {
 
 function NotificationItem({ notification, onRead, busy, userRole }) {
   const link = destinationFor(notification, userRole)
-  const content = <><span className="notification-type-icon">{iconFor(notification.type)}</span><div><div className="notification-row-title"><h3>{notification.title}</h3>{!notification.is_read && <span>Unread</span>}</div><p>{notification.message}</p><time>{formatTime(notification.created_at)}</time></div></>
+  const content = <><span className="notification-type-icon">{iconFor(notification.type)}</span><div className="notification-copy"><div className="notification-row-title"><h3>{notification.title}</h3>{!notification.is_read && <span>Unread</span>}</div><p>{notification.message}</p><div className="notification-meta"><time><Clock3 size={12} />{formatTime(notification.created_at)}</time>{notification.related_job_id && <span><BriefcaseBusiness size={12} />Job #{notification.related_job_id}</span>}</div></div></>
   return <article className={`notification-item ${notification.is_read ? '' : 'unread'}`}>{link ? <Link to={link} onClick={onRead}>{content}</Link> : <button type="button" onClick={onRead} disabled={busy}>{content}</button>}{!notification.is_read && <button className="notification-read-action" type="button" onClick={onRead} disabled={busy}>Mark read</button>}</article>
 }
 
 function NotificationsState({ title, description }) { return <div className="careers-state"><span><Bell size={22} /></span><h2>{title}</h2><p>{description}</p></div> }
 function groupNotifications(items) { const today = new Date().toDateString(); const groups = [{ label: 'Today', items: [] }, { label: 'Earlier', items: [] }]; items.forEach((item) => groups[new Date(item.created_at).toDateString() === today ? 0 : 1].items.push(item)); return groups.filter((group) => group.items.length) }
-function iconFor(type) { if (type.startsWith('interview')) return <CalendarDays size={15} />; if (type.startsWith('contract')) return <FileText size={15} />; if (type.includes('application')) return <BriefcaseBusiness size={15} />; return <CheckCircle2 size={15} /> }
+function iconFor(type) { if (type.startsWith('interview')) return <CalendarDays size={18} />; if (type.startsWith('contract')) return <FileText size={18} />; if (type.includes('application')) return <BriefcaseBusiness size={18} />; return <CheckCircle2 size={18} /> }
 function destinationFor(notification, userRole) { if (userRole === 'applicant') { if (notification.related_application_id) return `/applications/${notification.related_application_id}`; if (notification.related_job_id) return `/careers/${notification.related_job_id}`; return '' } if (notification.related_interview_id) return `/interviews/${notification.related_interview_id}`; if (notification.related_application_id) return `/candidates/${notification.related_application_id}`; if (notification.related_job_id) return `/jobs/${notification.related_job_id}`; return '' }
 function formatTime(value) { return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value)) }

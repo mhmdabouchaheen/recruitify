@@ -86,7 +86,7 @@ export default function Careers() {
         </div>
         {facets.departments.length > 0 && <div className="careers-quick-chips">{facets.departments.slice(0, 6).map((department) => <button type="button" key={department} onClick={() => setFilters((current) => ({ ...current, department }))}>{department}</button>)}</div>}
       </div>
-      <div className="careers-hero-art" aria-hidden="true"><span>People</span><span>Build</span><span>Great</span><span>Teams</span></div>
+      <div className="careers-hero-art" aria-hidden="true"><span>People Build</span><span>Great Teams</span></div>
     </section>
     <section className="careers-board" aria-label="Published vacancies">
       <aside className="careers-filter-sidebar" aria-label="Job filters">

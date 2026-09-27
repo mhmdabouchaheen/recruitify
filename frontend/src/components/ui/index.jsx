@@ -82,10 +82,10 @@ export function Field({ label, helper, error, children }) {
   )
 }
 
-export function Modal({ open, title, onClose, children, footer }) {
+export function Modal({ open, title, onClose, children, footer, className = '' }) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="modal" showCloseButton={false}>
+      <DialogContent className={`modal ${className}`.trim()} showCloseButton={false}>
         <DialogHeader className="modal-head">
           <DialogTitle className="panel-title">{title}</DialogTitle>
           <IconButton label="Close dialog" onClick={onClose}>
